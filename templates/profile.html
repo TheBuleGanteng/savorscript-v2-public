@@ -1,0 +1,206 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    Profile
+{% endblock %}
+
+{% block main %}
+<!-- Instructional text -->
+<div class="container-fluid">
+    <div class="container-fluid container-instructions-start">
+        <div class="container-fluid container-instructions-start-bold">
+            Your profile is below. To alter your profile, click "update" and then "submit".
+        </div>
+    </div>
+</div>
+<!-- /Instructional text -->
+
+<!-- Profile -->
+<div class="container-fluid">
+    <form action='/profile' method='post'>
+        {{ form.hidden_tag() }}
+
+        <!-- name field -->
+        <div class='user_input_registration row'>
+            {{ form.name.label(class='col-sm-2 form-label-start-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.name(class='form-control', id='name', readonly=True) }}
+            </div>
+            <div class='col-sm-2 mt-2'>
+                <a href='#' id='updateButtonName' class='btn btn-profile-change btn-primary w-100'>update</a>
+            </div>
+        </div>
+
+        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
+            {% if form.name_first_input.errors %}
+                <div class='errors'>
+                    {% for error in form.name_first_input.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
+            {% if form.name_last_input.errors %}
+                <div class='errors'>
+                    {% for error in form.name_last_input.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    
+        <div class="container-fluid" id='profile_hidden_name_container' style='display: none; padding: 0; margin: 0' !important>
+
+            <div class='user_input_registration row' id='profile_hidden_first_name' style='margin-top: -5px;'>        
+                {{ form.name_first_input.label(class='col-sm-2 form-label-start-req-bold') }}
+                <div class='col-sm-8 col-md-6 col-lg-4'>
+                    {{ form.name_first_input(class='form-control', id='name_first_input') }}
+                </div>
+                <div class='col-sm-2 mt-2'>
+                </div>
+            </div>
+
+            <div class='user_input_registration row' id='profile_hidden_last_name' style='margin-bottom: 40px; margin-top: -5px;'>        
+                {{ form.name_last_input.label(class='col-sm-2 form-label-start-req-bold') }}
+                <div class='col-sm-8 col-md-6 col-lg-4'>
+                    {{ form.name_last_input(class='form-control', id='name_last_input') }}
+                </div>
+                <div class='col-sm-2 mt-2'>
+                </div>
+            </div>
+        </div>
+        <!-- /name field -->
+
+        <!-- username field -->
+        <div class='user_input_registration row'>
+            {{ form.username_old.label(class='col-sm-2 form-label-start-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.username_old(class='form-control', readonly=True) }}
+            </div>
+            <div class='col-sm-2 mt-2'>
+                <a href='#' id='updateButtonUsername' class='btn btn-profile-change btn-primary w-100'>update</a>
+            </div>
+        </div>
+
+        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
+            {% if form.username_input.errors %}
+                <div class='errors'>
+                    {% for error in form.username_input.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class='user_input_registration row' id='profile_hidden_username' style='display: none; margin-top: -5px;'>        
+            {{ form.username_input.label(class='col-sm-2 form-label-start-req-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.username_input(class='form-control', id='username_input') }}
+            </div>
+            <div class='col-sm-2 mt-2'>
+            </div>
+        </div>
+
+        <div class='user_input_registration row'>
+            <label class='col-sm-2 form-label-start-req-bold'></label>
+            <div class='col-sm-8 col-md-6 col-lg-4 container-input-validation' id='username_validation' name='username_validation' style='display: none;'>
+                    <a></a>
+            </div>
+            <div class='col-sm-2 mt-2'>
+            </div>
+        </div>        
+        <!-- /username field -->
+
+        <!-- gender field -->
+        <div class='user_input_registration row'>
+            {{ form.gender.label(class='col-sm-2 form-label-start-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.gender(class='form-control', id='gender', readonly=True) }}
+            </div>
+            <div class='col-sm-2 mt-2'>
+                <a href='#' onclick='jsShowHiddenInputGender()' id='updateButtonGender' class='btn btn-profile-change btn-primary w-100'>update</a>
+            </div>        
+        </div>
+
+        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
+            {% if form.gender_input.errors %}
+                <div class='errors'>
+                    {% for error in form.gender_input.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class='user_input_registration row' id='profile_hidden_gender' style='display: none; margin-bottom: 40px; margin-top: -5px;'>        
+            {{ form.gender_input.label(class='col-sm-2 form-label-start-req-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.gender_input(class='form-select', id='gender_input') }}
+            </div>
+            <div class='col-sm-2 mt-2'>
+            </div>
+        </div>    
+        <!-- /gender field -->
+
+        <!-- birthdate field -->
+        <div class='user_input_registration row'>
+            {{ form.birthdate.label(class='col-sm-2 form-label-start-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.birthdate(class='form-control', id='birthdate', readonly=True) }}
+            </div>
+            <div class='col-sm-2 mt-2'>
+                <a href='#' id='updateButtonBirthdate' class='btn btn-profile-change btn-primary w-100'>update</a>
+            </div>
+        </div>
+
+        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
+            {% if form.birthdate_input.errors %}
+                <div class='errors'>
+                    {% for error in form.birthdate_input.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class='user_input_registration row' id='profile_hidden_birthdate' style='display: none; margin-bottom: 40px; margin-top: -5px;'>
+            {{ form.birthdate_input.label(class='col-sm-2 form-label-start-req-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.birthdate_input(class='form-control', id='birthdate_input', oninput='enableSubmitButton()') }}
+            </div>
+            <div class='col-sm-2 mt-2'>
+            </div>
+        </div>
+        <!-- /birthdate field -->
+
+        <!-- email field -->
+        <div class='user_input_registration row'>
+            {{ form.user_email.label(class='col-sm-2 form-label-start-bold') }}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.user_email(class='form-control', id='user_email', readonly=True) }}
+            </div>
+        </div>
+        <!-- /email field -->
+
+        <div class='user_input_registration row'>
+            <label class='col-sm-2 form-label-start-bold'>Password:</label>
+            <div class='col-sm-10 col-md-6 col-lg-4'>
+                <a href="/pw_change" class='btn btn-primary' style='width: 100%'>Click to change password</a>
+            </div>
+        </div>
+        
+        <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                <a href="{{ url_for('index') }}" class='btn btn-secondary w-100'>Back</a>
+            </div>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', style='display: none;') }}
+            </div>
+        </div>
+    </form>
+</div>
+<!-- /Profile -->
+
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    PW reset request
+{% endblock %}
+
+{% block main %}
+<!-- Instructional text -->
+<div class="container-fluid container-instructions-start" style='margin-left: 15px;'>
+    <div class="container-fluid container-instructions-start-bold">
+        Please submit the email address associated with your account. You will receive an email with instructions to reset your password. 
+        <br>
+        IMPORTANT: Please be sure to check your spam folder if you do not see an email from SavorScrip in your email inbox.
+    </div>
+    <div class="container-fluid container-instructions-start-red">
+        *Required fields
+    </div>
+</div>
+<!-- /Instructional text -->
+
+<!-- Form -->
+<div class="container-fluid">    
+    <form action='/pw_reset_req' method='post'>
+        
+        <div class='user_input_registration row mb-3'>
+            <label for='name_first' class='col-sm-2 form-label-start-req-bold'>Your email address:*</label>
+            <div class='col-sm-10 col-md-6 col-lg-4 col-md-6 col-lg-4'>
+                <input class='form-control' autofocus autocomplete='off' id='pw_reset_email' name='pw_reset_email' placeholder='Your email address' type='email' required>
+            </div>
+        </div>
+
+        <div class='container-fluid text-start' style='margin: 0; padding: 0;'>
+            Know your password? <a href='/login'> click here to log in</a>
+            <br>
+            New user? <a href='/register'> Click here to register</a>
+        </div>
+
+        <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                <a href='{{ url_for("login") }}' class='btn btn-secondary w-100'>Cancel</a>
+            </div>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                <button class='btn btn-primary w-100' type='submit'>Submit</button>
+            </div>
+        </div>
+
+    </form>
+</div>
+<!-- /Form -->
+
+{% endblock %}

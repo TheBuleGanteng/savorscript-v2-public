@@ -1,0 +1,83 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    Reset PW
+{% endblock %}
+
+{% block main %}
+<!-- Instructional text -->
+<div class="container-fluid mb-4">
+    
+    <div class="container-fluid container-instructions-start-bold">
+        Please complete the fields below to change your password.
+    </div>
+
+    <div class="container-instructions-start-chars">
+        Password requirements:
+        <ol>
+            <li>Must not match previous password</li>
+            <li>At least {{ pw_req_length }} characters total, consisting of:</li>
+            <li>At least {{ pw_req_letter }} letters</li>
+            <li>At least {{ pw_req_num }} numbers 0-9</li>
+            <li>At least {{ pw_req_symbol }} symbols, from the following list: {{ user_input_allowed_symbols }}</li>
+    </div>
+
+    <div class="container-fluid container-instructions-start-red">
+        *Required fields
+    </div>
+
+</div>
+<!-- /Instructional text -->
+
+<!-- Form -->    
+<div class="container-fluid">
+    <form action="/pw_reset_new/{{ token }}" method='post'>
+        {{ form.hidden_tag() }}
+        
+        <div class='user_input_registration row mb-5'>
+            {{ form.password_new.label(class='col-sm-2 form-label-start-req-bold') }}
+            <div class='col-sm-10 col-md-6 col-lg-4 col-md-6 col-lg-4'>
+                {{ form.password_new(class='form-control', id='password_new', autocomplete='off', autofocus=True, placeholder='Your new password') }}
+            </div>
+            <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
+                {% if form.password_new.errors %}
+                    <div class='errors'>
+                        {% for error in form.password_new.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class='user_input_registration row mb-5'>
+            {{ form.password_new_confirm.label(class='col-sm-2 form-label-start-req-bold') }}
+            <div class='col-sm-10 col-md-6 col-lg-4 col-md-6 col-lg-4'>
+                {{ form.password_new_confirm(class='form-control', id='password_new_confirm', autocomplete='off', autofocus=True, placeholder='Your new password') }}
+            </div>
+            <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
+                {% if form.password_new_confirm.errors %}
+                    <div class='errors'>
+                        {% for error in form.password_new_confirm.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                <a href='{{ url_for("login") }}' class='btn btn-secondary w-100'>Cancel</a>
+            </div>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                {{ form.submit_button(class='btn btn-success w-100', id='submit_button') }}
+            </div>
+        </div>
+
+    </form>
+</div>
+<!-- /Form -->
+
+{% endblock %}
+

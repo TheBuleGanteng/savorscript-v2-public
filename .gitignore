@@ -1,0 +1,8 @@
+# Ignoring environmental variables in .env
+.env
+
+# Ignore the logs directory (created to log csp violations)
+logs/
+
+# Ignore the notes directory (notes to self)
+notes/

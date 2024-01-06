@@ -1,0 +1,14 @@
+cs50==9.3.0
+DNS==0.0.1
+email_validator==2.1.0.post1
+Flask==3.0.0
+Flask_Mail==0.9.1
+flask_talisman==1.1.0
+flask_wtf==1.2.1
+itsdangerous==2.1.2
+pytest==7.4.3
+python-dotenv==1.0.0
+pytz==2023.3.post1
+Requests==2.31.0
+Werkzeug==3.0.1
+WTForms==3.1.1
