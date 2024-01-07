@@ -1,0 +1,25 @@
+{
+    "cSpell.language": "en,en-US,lorem",
+    "cSpell.enableFiletypes": [
+        "!elixir",
+        "!erlang",
+        "!go",
+        "!handlebars",
+        "!haskell",
+        "!latex",
+        "!rust",
+        "!scminput",
+        "!swift",
+        "!text",
+        "!typescriptreact",
+        "!vue",
+        "cmake",
+        "django-html",
+        "django-txt",
+        "dockerfile",
+        "dotenv",
+        "jinja",
+        "julia",
+        "sqlite"
+    ]
+}

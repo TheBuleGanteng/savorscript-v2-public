@@ -190,24 +190,7 @@ class LoginForm(FlaskForm):
     user_email = StringField('Email', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator])
     password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator])
     submit = SubmitField('Log In')
-
-
-class RegisterForm(FlaskForm):
-    name_first = StringField('First name', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
-    name_last = StringField('Last name', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
-    gender = SelectField('Gender', choices=[
-    ('undisclosed', 'Select gender (optional)'),
-    ('female', 'Female'),
-    ('male', 'Male'),
-    ('undisclosed', "I'd rather not say")
-    ], validators=[Optional()], default='undisclosed', render_kw={"class": "form-select"})
-    birthdate = DateField('Birthdate', validators=[Optional()])
-    username = StringField('Username', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
-    user_email = EmailField('Email address', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True})
-    password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator])
-    password_confirmation = PasswordField('Password confirmation', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.'), allowed_chars_validator], render_kw={'required': True})
-    submit_button = SubmitField('Register')
-    
+  
 
 class ProfileForm(FlaskForm):
     name = StringField('Name:', render_kw={'readonly': True})
@@ -230,8 +213,6 @@ class ProfileForm(FlaskForm):
     user_email = EmailField('Email address:', render_kw={'readonly': True})
     submit_button = SubmitField('Save changes')
 
-
-
 class PasswordChangeForm(FlaskForm):
     user_email =  EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator, email_logged_in_validator], render_kw={'required': True})
     password_old = PasswordField('Current password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, password_matches_existing_true_validator], render_kw={'required': True})
@@ -247,6 +228,24 @@ class PasswordResetForm(FlaskForm):
     password =  PasswordField('New password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator, password_matches_existing_false_validator], render_kw={'required': True})
     password_confirmation =  PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.'), allowed_chars_validator, pw_strength_check_validator], render_kw={'required': True})
     submit_button = SubmitField('Submit')
+
+
+class RegisterForm(FlaskForm):
+    name_first = StringField('First name', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
+    name_last = StringField('Last name', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
+    gender = SelectField('Gender', choices=[
+    ('undisclosed', 'Select gender (optional)'),
+    ('female', 'Female'),
+    ('male', 'Male'),
+    ('undisclosed', "I'd rather not say")
+    ], validators=[Optional()], default='undisclosed', render_kw={"class": "form-select"})
+    birthdate = DateField('Birthdate', validators=[Optional()])
+    username = StringField('Username', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
+    user_email = EmailField('Email address', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True})
+    password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator])
+    password_confirmation = PasswordField('Password confirmation', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.'), allowed_chars_validator], render_kw={'required': True})
+    submit_button = SubmitField('Register')
+
 
 # ------------------------------------------------------------------------------------------
 

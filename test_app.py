@@ -940,7 +940,7 @@ def test_profile_happy_path(client):
         'csrf_token': csrf_token,
         'name_first': 'John',
         'name_last': 'Doe',
-        'username_input' : 'UnusedUsername',
+        'username' : 'UnusedUsername',
         'gender': 'male',
         'birthdate': '1901-01-01',
     }, follow_redirects=True)
@@ -1113,9 +1113,9 @@ def test_pw_change_happy_path(client):
     response = client.post('/pw_change', data={
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
-        'password': test_user['pw_unhashed'],
-        'password_new': 'test1234',
-        'password_new_confirmed': 'test1234'
+        'password_old': test_user['pw_unhashed'],
+        'password': 'test1234',
+        'password_confirmation': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/'
@@ -1154,8 +1154,8 @@ def test_pw_change_missing_csrf(client):
         'csrf_token': ['invalid_token'],
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
-        'password_new': 'test1234',
-        'password_new_confirmed': 'test1234'
+        'password': 'test1234',
+        'password_confirmationed': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1227,8 +1227,8 @@ def test_pw_change_no_user_email(client):
         'csrf_token': csrf_token,
         'user_email': '',
         'password': test_user['pw_unhashed'],
-        'password_new': 'test1234',
-        'password_new_confirmed': 'test1234'
+        'password': 'test1234',
+        'password_confirmationed': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1267,8 +1267,8 @@ def test_pw_change_no_pw(client):
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
         'password': '',
-        'password_new': 'test1234',
-        'password_new_confirmed': 'test1234'
+        'password': 'test1234',
+        'password_confirmationed': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1307,8 +1307,8 @@ def test_pw_change_no_new_pw(client):
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
-        'password_new': '',
-        'password_new_confirmed': 'test1234'
+        'password': '',
+        'password_confirmationed': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1347,8 +1347,8 @@ def test_pw_change_no_new_pw_confirm(client):
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
-        'password_new': 'test1234',
-        'password_new_confirmed': ''
+        'password': 'test1234',
+        'password_confirmationed': ''
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1387,8 +1387,8 @@ def test_pw_change_no_prohibited_chars(client):
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
-        'password_new': 'test1234>*&$',
-        'password_new_confirmed': 'test1234'
+        'password': 'test1234>*&$',
+        'password_confirmationed': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1427,8 +1427,8 @@ def test_pw_change_pw_strength(client):
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
-        'password_new': 'a',
-        'password_new_confirmed': 'a'
+        'password': 'a',
+        'password_confirmationed': 'a'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1467,8 +1467,8 @@ def test_pw_change_matching_pws(client):
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
-        'password_new': 'test1234',
-        'password_new_confirmed': 'test12345'
+        'password': 'test1234',
+        'password_confirmationed': 'test12345'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1507,8 +1507,8 @@ def test_pw_change_registered_email(client):
         'csrf_token': csrf_token,
         'user_email': 'unregistered@mattmcdonnell.net',
         'password': test_user['pw_unhashed'],
-        'password_new': 'test1234',
-        'password_new_confirmed': 'test1234'
+        'password': 'test1234',
+        'password_confirmationed': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1547,8 +1547,8 @@ def test_pw_change_correct_current_pw(client):
         'csrf_token': csrf_token,
         'user_email': test_user['user_email'],
         'password': 'invalid_password',
-        'password_new': 'test1234',
-        'password_new_confirmed': 'test1234'
+        'password': 'test1234',
+        'password_confirmationed': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
@@ -1832,8 +1832,8 @@ def test_pw_reset_new_happy_path(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': 'abc123456',
-            'password_new_confirm': 'abc123456'
+            'password': 'abc123456',
+            'password_confirmation': 'abc123456'
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -1871,8 +1871,8 @@ def test_pw_reset_new_missing_csrf(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': 'invalid_csrf',
-            'password_new': 'abc123456',
-            'password_new_confirm': 'abc123456'
+            'password': 'abc123456',
+            'password_confirmation': 'abc123456'
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -1910,8 +1910,8 @@ def test_pw_reset_new_csp_headers(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': 'abc123456',
-            'password_new_confirm': 'abc123456'
+            'password': 'abc123456',
+            'password_confirmation': 'abc123456'
         }, follow_redirects=True)
 
         # Check if CSP headers are set correctly in the response
@@ -1954,8 +1954,8 @@ def test_pw_reset_new_bad_token_get(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(invalid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': 'abc123456',
-            'password_new_confirm': 'abc123456'
+            'password': 'abc123456',
+            'password_confirmation': 'abc123456'
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -1993,8 +1993,8 @@ def test_pw_reset_new_missing_pw_reset_new(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': '',
-            'password_new_confirm': 'abc123456'
+            'password': '',
+            'password_confirmation': 'abc123456'
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -2032,8 +2032,8 @@ def test_pw_reset_new_missing_pw_reset_new_confirm(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': 'abc123456',
-            'password_new_confirm': ''
+            'password': 'abc123456',
+            'password_confirmation': ''
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -2071,8 +2071,8 @@ def test_pw_reset_new_missing_pw_reset_new_and_confirm(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': '',
-            'password_new_confirm': ''
+            'password': '',
+            'password_confirmation': ''
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -2110,8 +2110,8 @@ def test_pw_reset_new_prohibited_chars(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': 'abc123>@()',
-            'password_new_confirm': 'abc123>@()'
+            'password': 'abc123>@()',
+            'password_confirmation': 'abc123>@()'
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -2149,8 +2149,8 @@ def test_pw_reset_new_weak_new_pw(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': 'a',
-            'password_new_confirm': 'a'
+            'password': 'a',
+            'password_confirmation': 'a'
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -2188,8 +2188,8 @@ def test_pw_reset_new_pw_mismatch(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': 'abc12345',
-            'password_new_confirm': 'abc1234'
+            'password': 'abc12345',
+            'password_confirmation': 'abc1234'
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
@@ -2227,8 +2227,8 @@ def test_pw_reset_new_pw_new_pw_matches_old_pw(client):
         # Simulate the POST request with the new password and CSRF token
         response = client.post(valid_token_url, data={
             'csrf_token': csrf_token,
-            'password_new': test_user['pw_unhashed'],
-            'password_new_confirm': test_user['pw_unhashed']
+            'password': test_user['pw_unhashed'],
+            'password_confirmation': test_user['pw_unhashed']
         }, follow_redirects=True)
 
         # Verify that the response is a redirect to the home page
