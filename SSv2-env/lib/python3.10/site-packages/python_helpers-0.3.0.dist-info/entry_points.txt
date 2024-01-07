@@ -1,0 +1,3 @@
+[console_scripts]
+python_helpers = python_helpers.cli:main
+

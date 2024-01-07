@@ -1,0 +1,3 @@
+[distutils.commands]
+run_helper = helper.setupext:RunCommand
+

@@ -1,0 +1,89 @@
+Metadata-Version: 2.1
+Name: python-helpers
+Version: 0.3.0
+Summary: Python Helpers contains reusable functions for routine automation.
+Home-page: https://github.com/and1er/python_helpers
+Author: Andrei Losenkov
+Author-email: w.alosenkov@gmail.com
+License: MIT license
+Keywords: python_helpers
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Requires-Dist: Click (>=6.0)
+
+==============
+Python Helpers
+==============
+
+
+.. image:: https://img.shields.io/pypi/v/python_helpers.svg
+        :target: https://pypi.python.org/pypi/python_helpers
+
+.. image:: https://img.shields.io/travis/and1er/python_helpers.svg
+        :target: https://travis-ci.org/and1er/python_helpers
+
+.. image:: https://readthedocs.org/projects/python-helpers/badge/?version=latest
+        :target: https://and1er-python-helpers.readthedocs.io/en/latest/?badge=latest
+        :alt: Documentation Status
+
+
+.. image:: https://pyup.io/repos/github/and1er/python_helpers/shield.svg
+     :target: https://pyup.io/repos/github/and1er/python_helpers/
+     :alt: Updates
+
+
+
+Python Helpers contains reusable functions for routine automation.
+
+
+* Free software: MIT license
+* Documentation: https://and1er-python-helpers.readthedocs.io.
+
+
+Features
+--------
+
+* TODO
+
+Credits
+-------
+
+This package was created with Cookiecutter_
+and the `audreyr/cookiecutter-pypackage`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+
+=======
+History
+=======
+
+0.3.0 (2019-08-27)
+------------------
+
+* The first helper is added: ``python_helpers.quote_line()``!
+* Now ``make test`` works as expected.
+* Changed Read the Docs link: https://and1er-python-helpers.readthedocs.io.
+
+0.2.x (2019-08-27)
+------------------
+
+* Deployment practicing.
+
+0.1.0 (2019-08-27)
+------------------
+
+* First release on PyPI.
+
+
