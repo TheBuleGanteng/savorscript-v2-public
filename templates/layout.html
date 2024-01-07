@@ -39,65 +39,58 @@
 
 
     <!-- Navbar -->
-    <nav id='navbarCustomization' class='navbar navbar-expand-lg navbar-light bg-light'>
-        
-        <div class='container-fluid'>
-
-          <a class='navbar-brand' href='{{ url_for("index") }}'>
-            <img src="{{ url_for('static', filename='favicon_wine.png') }}" alt="SavorSip Logo" width="30" height="24" class="d-inline-block align-text-top">
-            SavorSip
-          </a>
-
-          <div class='collapse navbar-collapse' id='navbarSupportedContent'>
-
-            <!-- Left-aligned items within navbar -->
-            <ul class='navbar-nav me-auto mb-2 mb-lg-0'>
-              
-              <li class='nav-item'>
-                <a class='nav-link active' aria-current='page' href='{{ url_for("index") }}'>Home</a>
-              </li>
-
-              {% if session["user_id"] %}
-              
-              <li class='nav-item'>
-                <a class='nav-link' href='#'>Link</a>
-              </li>
-              
-              <li class='nav-item'>
-                <a class='nav-link disabled' href='#' tabindex='-1' aria-disabled='true'>Disabled</a>
-              </li>
-
-              {% endif %}
-            </ul>
-            <!-- /Left-aligned items within navbar -->
-
-            <!-- Right-aligned items within navbar -->
-            <ul class='navbar-nav mb-2 mb-lg-0'>
-              
-              {% if session["user_id"] %}
-              <li class='nav-item dropdown'>
-                <a class='nav-link dropdown-toggle' id='navbarDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
-                  <span style='font-weight: bold;'>{{ session['username'] }}</span>
-                </a>
-                <ul class='dropdown-menu' aria-labelledby='navbarDropdown'>
-                  <li><a class='dropdown-item' href='{{ url_for("profile") }}'>Profile</a></li>
-                  <li><a class='dropdown-item' href='{{ url_for("logout") }}'>Log out</a></li>
-                </ul>
-              </li>
-
-              {% else %}
-
-              <li class='nav-item'>
-                <a class='nav-link' href='{{ url_for("login") }}'>Log in / Register</a>
-              </li>
-
-              {% endif %}
-            </ul>
-            <!-- /Right-aligned items within navbar -->
-
+    <nav id='navbarCustomization' class='navbar navbar-expand navbar-light bg-light'>
+      <div class='container-fluid'>
+        <!-- Row for Logo and Left-Aligned Items (visible if user is logged in) -->
+        <div class="row align-items-center">
+          <div class="col-md-auto">
+              <a class='navbar-brand' href='{{ url_for("index") }}'>
+                  <img src="{{ url_for('static', filename='favicon_wine.png') }}" alt="Logo" width="30" height="24" class="d-inline-block align-text-top">
+                  SavorScript
+              </a>
           </div>
+          {% if session["user_id"] %}
+          <div class="col-md-12">
+              <ul class='navbar-nav me-auto mb-2 mb-lg-0'>
+                  <li class='nav-item'>
+                      <a class='nav-link active' aria-current='page' href='{{ url_for("index") }}'>Home</a>
+                  </li>
+                  <li class='nav-item'>
+                      <a class='nav-link' href='#'>Link</a>
+                  </li>
+                  <li class='nav-item'>
+                      <a class='nav-link disabled' href='#' tabindex='-1' aria-disabled='true'>Disabled</a>
+                  </li>
+              </ul>
+          </div>
+          {% endif %}
         </div>
+
+        <!-- Row for Right-Aligned Items (visible if user is logged in) -->
+        <div class="row align-items-stretch" style="height: 100% !important;">
+          <div class="col-md-auto ms-auto">
+              <ul class='navbar-nav w-100'>
+                  {% if session["user_id"] %}
+                  <li class='nav-item dropdown'>
+                      <a class='nav-link dropdown-toggle' id='navbarDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false'>
+                          <span style='font-weight: bold;'>{{ session['username'] }}</span>
+                      </a>
+                      <ul class='dropdown-menu' aria-labelledby='navbarDropdown'>
+                          <li><a class='dropdown-item' href='{{ url_for("profile") }}'>Profile</a></li>
+                          <li><a class='dropdown-item' href='{{ url_for("logout") }}'>Log out</a></li>
+                      </ul>
+                  </li>
+                  {% else %}
+                  <li class='nav-item'>
+                      <a class='nav-link' href='{{ url_for("login") }}'>Log in / Register</a>
+                  </li>
+                  {% endif %}
+              </ul>
+          </div>
+        </div>        
+      </div>
     </nav>
+  
     <!-- /Navbar -->
 
       

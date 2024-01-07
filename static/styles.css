@@ -63,6 +63,17 @@
 }
 
 
+.equal-height {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.equal-height > div {
+  flex: 1;
+}
+
+
 .errors {
   align-content: center;
   color: red;
