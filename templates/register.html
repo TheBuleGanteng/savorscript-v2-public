@@ -8,17 +8,8 @@
 <!-- Instructional text -->
 <div class="container-fluid mb-2">
     
-    <div class="container-fluid container-instructions-start-bold">
+    <div class="container-fluid container-instructions-start-bold mb-4">
         Please complete the fields below to create your account.
-    </div>
-
-    <div class="container-instructions-start-chars">
-        Password requirements:
-        <ol>
-            <li>At least {{ pw_req_length }} characters total, consisting of:</li>
-            <li>At least {{ pw_req_letter }} letters</li>
-            <li>At least {{ pw_req_num }} numbers 0-9</li>
-            <li>At least {{ pw_req_symbol }} symbols from the following list: {{ user_input_allowed_symbols }}</li>
     </div>
 
     <div class="container-fluid container-instructions-start-red">
@@ -33,6 +24,7 @@
     <form action="{{ url_for('register') }}" method="post">
         {{ form.hidden_tag() }}
         
+        <!-- name -->
         <div class='user_input_registration row'>
             {{ form.name_first.label(class='col-sm-2 form-label-start-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
@@ -64,7 +56,9 @@
                 {% endif %}
             </div>
         </div>
+        <!-- /name -->
 
+        <!-- gender -->
         <div class='user_input_registration row'>
             {{ form.gender.label(class='col-sm-2 form-label-start-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
@@ -80,7 +74,9 @@
                 {% endif %}
             </div>
         </div>
+        <!-- /gender -->
 
+        <!-- birthdate -->
         <div class='user_input_registration row'>
             {{ form.birthdate.label(class='col-sm-2 form-label-start-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
@@ -96,7 +92,9 @@
                 {% endif %}
             </div>
         </div>
+        <!-- /birthdate -->
 
+        <!-- username -->
         <div class='user_input_registration row'>
             {{ form.username.label(class='col-sm-2 form-label-start-req-bold', for='username') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
@@ -119,7 +117,9 @@
                 <a></a>
             </div>
         </div>
+        <!-- /username -->
 
+        <!-- user_email -->
         <div class='user_input_registration row'>
             {{ form.user_email.label(class='col-sm-2 form-label-start-req-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
@@ -143,7 +143,9 @@
                 <a></a>
             </div>
         </div>
+        <!-- /user_email -->
 
+        <!-- password -->
         <div class='user_input_registration row'>
             {{ form.password.label(class='col-sm-2 form-label-start-req-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
@@ -177,7 +179,9 @@
                 </div>
             </div>
         </div>
+        <!-- /password -->
 
+        <!-- /password_confirmation -->
         <div class='user_input_registration row'>
             {{ form.password_confirmation.label(class='col-sm-2 form-label-start-req-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
@@ -214,15 +218,18 @@
                 </div>
             </div>
         </div>
+        <!-- /password_confirmation -->
 
+        <!-- buttons -->
         <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
             <div class='col-sm-6 col-md-4 col-lg-3 mb-2'>
                 <a href='{{ url_for("index") }}' class='btn btn-secondary w-100'>Cancel</a>
             </div>
             <div class='col-sm-6 col-md-4 col-lg-3 mb-2'>
-                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', style='display: none;') }}
+                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=True) }}
             </div>
         </div>
+        <!-- /buttons -->
 
     </form>
 </div>

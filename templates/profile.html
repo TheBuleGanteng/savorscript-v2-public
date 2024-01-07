@@ -85,9 +85,9 @@
         </div>
 
         <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-            {% if form.username_input.errors %}
+            {% if form.username.errors %}
                 <div class='errors'>
-                    {% for error in form.username_input.errors %}
+                    {% for error in form.username.errors %}
                         {{ error }}
                     {% endfor %}
                 </div>
@@ -95,9 +95,9 @@
         </div>
 
         <div class='user_input_registration row' id='profile_hidden_username' style='display: none; margin-top: -5px;'>        
-            {{ form.username_input.label(class='col-sm-2 form-label-start-req-bold') }}
+            {{ form.username.label(class='col-sm-2 form-label-start-req-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.username_input(class='form-control', id='username_input') }}
+                {{ form.username(class='form-control', id='username') }}
             </div>
             <div class='col-sm-2 mt-2'>
             </div>
@@ -196,7 +196,7 @@
                 <a href="{{ url_for('index') }}" class='btn btn-secondary w-100'>Back</a>
             </div>
             <div class='col-sm-6 col-md-4 col-lg-3'>
-                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', style='display: none;') }}
+                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=True) }}
             </div>
         </div>
     </form>

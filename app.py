@@ -214,7 +214,7 @@ class ProfileForm(FlaskForm):
     name_first_input = StringField('New first name:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
     name_last_input = StringField('New last name:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
     username_old =  StringField('Username:', render_kw={'readonly': True})
-    username_input =  StringField('New username:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
+    username =  StringField('New username:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
     gender =  StringField('Gender:', render_kw={'readonly': True})
     gender_input =  SelectField('New gender:', 
                                 choices=[('', 'Select gender'), ('female', 'Female'), ('male', 'Male'), ('undisclosed', "I'd rather not say")],
@@ -234,9 +234,9 @@ class ProfileForm(FlaskForm):
 
 class PasswordChangeForm(FlaskForm):
     user_email =  EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator, email_logged_in_validator], render_kw={'required': True})
-    password = PasswordField('Current password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, password_matches_existing_true_validator], render_kw={'required': True})
-    password_new =  PasswordField('New password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator, password_matches_existing_false_validator], render_kw={'required': True})
-    password_new_confirmed = PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password_new', message='New password confirmation must match the new password.'), allowed_chars_validator], render_kw={'required': True})
+    password_old = PasswordField('Current password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, password_matches_existing_true_validator], render_kw={'required': True})
+    password =  PasswordField('New password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator, password_matches_existing_false_validator], render_kw={'required': True})
+    password_confirmation = PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.'), allowed_chars_validator], render_kw={'required': True})
     submit_button = SubmitField('Submit')
 
 class PasswordResetRequest(FlaskForm):
@@ -244,8 +244,8 @@ class PasswordResetRequest(FlaskForm):
     submit_button = SubmitField('Submit')
 
 class PasswordResetForm(FlaskForm):
-    password_new =  PasswordField('New password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator, password_matches_existing_false_validator], render_kw={'required': True})
-    password_new_confirm =  PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password_new', message='New password confirmation must match the new password.'), allowed_chars_validator, pw_strength_check_validator], render_kw={'required': True})
+    password =  PasswordField('New password:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator, password_matches_existing_false_validator], render_kw={'required': True})
+    password_confirmation =  PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.'), allowed_chars_validator, pw_strength_check_validator], render_kw={'required': True})
     submit_button = SubmitField('Submit')
 
 # ------------------------------------------------------------------------------------------
@@ -615,7 +615,7 @@ def profile():
             user_data_submitted = {
                 'name_first': form.name_first_input.data,
                 'name_last': form.name_last_input.data,
-                'username': form.username_input.data,
+                'username': form.username.data,
                 'gender': form.gender_input.data,
                 'birthdate': form.birthdate_input.data
             }
@@ -695,14 +695,14 @@ def pw_change():
             print(f'Running /pw_change route... user submitted data via post and data passed class validation')
 
             # Step 2.1.1: Pull in data submitted by the user via the form
-            password_new = form.password_new.data
+            password = form.password.data
 
             # Step 2.1.3: Hash the new password
-            password_new_hashed = generate_password_hash(password_new)
+            password_hashed = generate_password_hash(password)
 
             # Step 2.1.4: Insert the username and hashed password into their corresponding columns in the DB.
             db.execute(
-                'UPDATE users SET pw_hashed = (?) WHERE user_id = (?)', password_new_hashed, session['user_id']
+                'UPDATE users SET pw_hashed = (?) WHERE user_id = (?)', password_hashed, session['user_id']
             )
 
             # Step 2.1.5: Flash an indication to the user that the password pw_change 
@@ -865,17 +865,17 @@ def pw_reset_new(token):
                 return redirect(url_for('login'))
 
             # Step 2.1.2: Pull in data submitted by the user via the form
-            password_new = form.password_new.data
+            password = form.password.data
             print(f'Running /pw_reset_new route... pulled in password_new.')
 
             # Step 2.1.3: Hash the new password.
-            new_pw_hashed = generate_password_hash(password_new)
-            print(f'Running /pw_reset_new route... new_pw_hashed generated.')
+            pw_hashed = generate_password_hash(password)
+            print(f'Running /pw_reset_new route... new pw_hashed generated.')
         
             # Step 2.1.4: Insert the new username and hashed password into their 
             # corresponding columns in the DB.
             db.execute(
-            'UPDATE users SET pw_hashed = ? WHERE user_id = ?', new_pw_hashed, session['user_id']
+            'UPDATE users SET pw_hashed = ? WHERE user_id = ?', pw_hashed, session['user_id']
             )
             print(f'Running /pw_reset_new route... updated DB with new_pw_hashed for session["user_id"]: {session["user_id"]}')
             

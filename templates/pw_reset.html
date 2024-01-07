@@ -8,18 +8,8 @@
 <!-- Instructional text -->
 <div class="container-fluid mb-4">
     
-    <div class="container-fluid container-instructions-start-bold">
+    <div class="container-fluid container-instructions-start-bold mb-4">
         Please complete the fields below to change your password.
-    </div>
-
-    <div class="container-instructions-start-chars">
-        Password requirements:
-        <ol>
-            <li>Must not match previous password</li>
-            <li>At least {{ pw_req_length }} characters total, consisting of:</li>
-            <li>At least {{ pw_req_letter }} letters</li>
-            <li>At least {{ pw_req_num }} numbers 0-9</li>
-            <li>At least {{ pw_req_symbol }} symbols, from the following list: {{ user_input_allowed_symbols }}</li>
     </div>
 
     <div class="container-fluid container-instructions-start-red">
@@ -34,15 +24,16 @@
     <form action="/pw_reset_new/{{ token }}" method='post'>
         {{ form.hidden_tag() }}
         
-        <div class='user_input_registration row mb-5'>
-            {{ form.password_new.label(class='col-sm-2 form-label-start-req-bold') }}
+        <!-- password -->
+        <div class='user_input_registration row'>
+            {{ form.password.label(class='col-sm-2 form-label-start-req-bold') }}
             <div class='col-sm-10 col-md-6 col-lg-4 col-md-6 col-lg-4'>
-                {{ form.password_new(class='form-control', id='password_new', autocomplete='off', autofocus=True, placeholder='Your new password') }}
+                {{ form.password(class='form-control', id='password', autocomplete='off', autofocus=True, placeholder='Your new password') }}
             </div>
             <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-                {% if form.password_new.errors %}
+                {% if form.password.errors %}
                     <div class='errors'>
-                        {% for error in form.password_new.errors %}
+                        {% for error in form.password.errors %}
                             {{ error }}
                         {% endfor %}
                     </div>
@@ -50,15 +41,35 @@
             </div>
         </div>
 
-        <div class='user_input_registration row mb-5'>
-            {{ form.password_new_confirm.label(class='col-sm-2 form-label-start-req-bold') }}
+        <div class='user-input-validation row'>
+            <label class='col-sm-2 form-label-start-req-bold'></label>
+            <div class='col-sm-8 col-md-6 col-lg-4 container-input-validation' style='color: black' id='password_validation' name='password_validation'>
+                <div class='col-sm-8 col-md-6 col-lg-4 container-input-validation-pw-bullets'>
+                    <a>Password must:</a>
+                    <ul>
+                        <li id='pw_min_tot_chars_li' name='pw_min_tot_chars_li'>Include at least {{ pw_req_length }} characters total, including at least: 
+                        
+                        <li class="custom-bullet-secondary" id='pw_min_letters_li' name='pw_min_letters_li'>{{ pw_req_letter }} letters</li>
+                        
+                        <li class="custom-bullet-secondary" id='pw_min_num_li' name='pw_min_num_li'>{{ pw_req_num }} numbers</li>
+                        
+                        <li class="custom-bullet-secondary" id='pw_min_sym_li' name='pw_min_sym_li'>{{ pw_req_symbol }} symbols from the following list: {{ user_input_allowed_symbols }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- /password -->
+
+        <!-- password_confirmation -->
+        <div class='user_input_registration row'>
+            {{ form.password_confirmation.label(class='col-sm-2 form-label-start-req-bold') }}
             <div class='col-sm-10 col-md-6 col-lg-4 col-md-6 col-lg-4'>
-                {{ form.password_new_confirm(class='form-control', id='password_new_confirm', autocomplete='off', autofocus=True, placeholder='Your new password') }}
+                {{ form.password_confirmation(class='form-control', id='password_confirmation', autocomplete='off', autofocus=True, placeholder='Your new password') }}
             </div>
             <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-                {% if form.password_new_confirm.errors %}
+                {% if form.password_confirmation.errors %}
                     <div class='errors'>
-                        {% for error in form.password_new_confirm.errors %}
+                        {% for error in form.password_confirmation.errors %}
                             {{ error }}
                         {% endfor %}
                     </div>
@@ -66,14 +77,38 @@
             </div>
         </div>
 
+        <div class='user-input-validation row'>
+            <label class='col-sm-2 form-label-start-req-bold'></label>
+            <div class='col-sm-8 col-md-6 col-lg-4 container-input-validation' style='color: black' id='password_confirmation_validation' name='password_confirmation_validation'>
+                <div class='col-sm-8 col-md-6 col-lg-4 container-input-validation-pw-bullets'>
+                    <a>Password confirmation must:</a>
+                    <ul>
+                        <li id='pw_min_tot_chars_li_c' name='pw_min_tot_chars_li_c'>At least {{ pw_req_length }} characters total, including at least: 
+                            
+                        <li id='pw_min_letters_li_c' name='pw_min_letters_li_c' class="custom-bullet-secondary">{{ pw_req_letter }} letters</li>
+                        
+                        <li id='pw_min_num_li_c' name='pw_min_num_li_c' class="custom-bullet-secondary">{{ pw_req_num }} numbers</li>
+                        
+                        <li id='pw_min_sym_li_c' name='pw_min_sym_li_c' class="custom-bullet-secondary">{{ pw_req_symbol }} symbols from the following list: {{ user_input_allowed_symbols }}</li>
+                        
+                        <li id='pw_match_c' name='pw_match_c'>Match the value for "password"</li>
+                    
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- /password_confirmation -->
+
+        <!-- cancel and submit buttons -->
         <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
             <div class='col-sm-6 col-md-4 col-lg-3'>
                 <a href='{{ url_for("login") }}' class='btn btn-secondary w-100'>Cancel</a>
             </div>
             <div class='col-sm-6 col-md-4 col-lg-3'>
-                {{ form.submit_button(class='btn btn-success w-100', id='submit_button') }}
+                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=True) }}
             </div>
         </div>
+        <!-- /cancel and submit buttons -->
 
     </form>
 </div>
