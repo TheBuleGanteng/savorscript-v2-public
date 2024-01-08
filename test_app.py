@@ -1839,6 +1839,30 @@ def test_pw_reset_new_happy_path(client):
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/login'
 
+        with app.test_request_context():
+            # Create the URL with a 'valid' token
+            valid_token_url = url_for('login', token='valid_token')
+
+        # Make a GET request to the reset password page to get the CSRF token
+        get_response = client.get(valid_token_url)
+        assert get_response.status_code == 200
+        html = get_response.data.decode()
+        csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Simulate the POST request with the new password and CSRF token
+        response = client.post(valid_token_url, data={
+            'csrf_token': csrf_token,
+            'user_email': test_user['user_email'],
+            'password': 'abc123456'
+        }, follow_redirects=True)
+
+        # Verify that the response is a redirect to the home page
+        assert response.request.path == '/'
+    
+    
+
+
+
     # Clean up: Delete the test user
     delete_test_user(test_user['user_email'])
 
