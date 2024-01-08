@@ -32,10 +32,11 @@ Allow developers to focus on the core of their development projects, with minima
     - Escaping of all user-generated data before being displayed in HTML 
     - Use of customized Content Security Policy (CSP) managed by Flask Talisman to protect against cross-site scripting (XSS), clickjacking and other code injection attacks
     - Use of CSRFProtect to protect against cross-site registry attacks
+    - Use of cryptographic tokens sent to the user via email as part of 2-step registration and password reset processes
     - Exclusion of sensitive data (e.g. passwords from) being stored in Session or in cryptographic token used for password reset
-    - Validation of user email during registration via use of account activation token sent to the user's email address
     - Externalization of sensitive data (e.g. login needed to send emails programmatically) to .env file
     - Exclusion of .env file and other sensitive data from upload to GitHub via .gitignore file
+    - Daily (12pm GST) automated purging of stale, unconfirmed user accounts via a cron job
 
 
 
