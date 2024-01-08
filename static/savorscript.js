@@ -574,17 +574,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     return response.json();
                 })
                 .then(data => {
-                    if (data.email_check_result == 'invalid_format') {
+                    if (data.available == 'invalid_format') {
                         // Email is of an invalid format --> display error message and disable submit.
                         user_email_validation.innerHTML = 'Please enter a valid email address.';
                         user_email_validation.style.color = 'red';
                         submit_enabled = false;
-                    } else if (data.email_check_result == 'already_registered') {
+                    } else if (data.available == 'unavailable') {
                         // Email is already registered --> display error message and disable submit.
                         user_email_validation.innerHTML = 'Email address already registered. Please login or reset your password.';
                         user_email_validation.style.color = 'red';
                         submit_enabled = false;
-                    } else if (data.email_check_result == 'available') {
+                    } else if (data.available == 'available') {
                         // Email is valid format + not already registered --> display success message.
                         user_email_validation.innerHTML = 'Email address not registered';
                         user_email_validation.style.color = '#22bd39';

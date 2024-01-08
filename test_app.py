@@ -1,102 +1,164 @@
-from dotenv import load_dotenv
-from flask import url_for
+from app import app, db, User
+from datetime import date
+from flask import url_for, Flask
 import os
 import pytest
 import re
+from flask_sqlalchemy import SQLAlchemy
 import shutil
 from unittest.mock import patch, MagicMock
 import uuid
 from werkzeug.security import generate_password_hash
 
-# Load environment variables from .env file
-load_dotenv()
 
-# Set Flask environment to testing
-os.environ['FLASK_ENV'] = 'testing'
+# Function to create a Flask app configured for testing
+def create_test_app():
+    # Set environment variables for testing
+    os.environ['FLASK_ENV'] = 'testing'
+    os.environ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///savorscript_test.sqlite'
+    # other environment variables as needed
 
-# Import app after setting FLASK_ENV to 'testing'
-from app import app, get_reset_token, verify_reset_token, db
+    app = Flask(__name__)
+    app.config.from_mapping(
+        TESTING=True,
+        SQLALCHEMY_DATABASE_URI=os.environ['SQLALCHEMY_DATABASE_URI'],
+        SQLALCHEMY_TRACK_MODIFICATIONS=False
+    )
 
-# Load environment variables from .env file
-from dotenv import load_dotenv
-load_dotenv()
+    db = SQLAlchemy(app)
+    return app, db
 
-# Paths to the main and test database files
-main_db_path = os.getenv('DATABASE_URL').replace('sqlite:///', '')
-test_db_path = os.getenv('TEST_DATABASE_URL').replace('sqlite:///', '')
-print(f"Test DB URL: sqlite:///{test_db_path}")
-
-# Setup step 1: Define a function to copy the state of the main DB to the test DB
-def create_test_database():
-    # Print statement to confirm the database is being created
-    print('Creating Test Database...')
-    shutil.copyfile(main_db_path, test_db_path)
-    print('Test database created')
-
-# Setup step 2: Define a function that copies the main DB to the test DB before and after each test
+# Setup and teardown of the test database
 @pytest.fixture(autouse=True)
 def setup_test_database():
-    create_test_database()
-    yield
-    create_test_database()
+    test_app, db = create_test_app()
+    with test_app.app_context():
+        db.create_all()  # Create all tables for the test database
+        yield db
+        db.drop_all()  # Drop all tables after the test
+        db.session.remove()
 
-# Setup step 3: Defines function to create a test user in the DB where confirmed = 1.
+
+
+# Setup steps summary: 
+# Setup step 1: Defines function to create a test user in the DB where confirmed = 1.
+# Setup step 2: Defines function to delete the test test user
+# Setup step 3: Defines function to create an UNCONFIRMED test user in the DB where confirmed = 0
+# Setup step 4: Defines function to delete the unconfirmed test user
+# Setup step 5: Create an instance of app.py for testing.
+# Setup step 6: Defines function to clear the users table
+# Setup step 7: Declare global variable for test number
+
+
+#Setup step 1: Defines function to create a test user in the DB where confirmed = 1
 def insert_test_user():
-    # Set unregistered user test email address.
-    test_user_email = f'{uuid.uuid4()}@mattmcdonnell.net'
-    test_password_unhashed = 'GLBMjKJ3qphUodwvqyF!+-='
-    test_password_hashed = generate_password_hash(test_password_unhashed)
-    # Insert a new test user into the database
-    db.execute('INSERT INTO users (name_first, name_last, birthdate, gender, user_email, username, pw_hashed, confirmed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-               "Test_Name_First", "Test_Name_Last", "1990-01-01", "male", test_user_email, "TestUser", test_password_hashed, 1)
-    # Retrieve the inserted user's data
-    user_data_test_user = db.execute("SELECT * FROM users WHERE user_email = ?", test_user_email)
-    # Take the first row    
-    if user_data_test_user:
-        user_data_test_user = user_data_test_user[0]
-        # Append the unhashed test password to the user_data_test_user 
-        # dict (done for easier testing).
-        user_data_test_user['pw_unhashed'] = test_password_unhashed
-    else:
-        user_data_test_user = None
-    return user_data_test_user
+    with app.app_context():
+        test_user_email = f'{uuid.uuid4()}@mattmcdonnell.net'
+        test_password_unhashed = 'GLBMjKJ3qphUodwvqyF!+-='
+        test_password_hashed = generate_password_hash(test_password_unhashed)
+        # Create a new User instance
+        test_user = User(
+            name_first="Test_Name_First",
+            name_last="Test_Name_Last",
+            birthdate=date(1990, 1, 1),
+            gender="male",
+            user_email=test_user_email,
+            username="TestUser",
+            pw_hashed=test_password_hashed,
+            confirmed=1
+        )
+        # Add the new user to the session and commit it
+        db.session.add(test_user)
+        db.session.commit()
+        # Retrieve the inserted user's data
+        user_data_test_user = User.query.filter_by(user_email = test_user_email).first()
+        # Take the first row    
+        if user_data_test_user:
+            user_data_test_user = user_data_test_user.as_dict()
+            # Append the unhashed test password to the user_data_test_user 
+            # dict (done for easier testing).
+            user_data_test_user['pw_unhashed'] = test_password_unhashed
+            return user_data_test_user
+        else:   
+            user_data_test_user = None
+        return user_data_test_user
 
 
-# Setup step 4: Defines function to delete the test test user
+# Setup step 2: Defines function to delete the test test user
 def delete_test_user(user_email):
-    db.execute("DELETE FROM users WHERE user_email = ?", user_email)
+    with app.app_context():
+        user_data_test_user = User.query.filter_by(user_email = user_email).first()
+        if user_data_test_user:
+            db.session.delete(user_data_test_user)
+            db.session.commit()
+        else:
+            print(f'running delete_test_user(user_email)... no user_data_test_user found in DB.')
+        
 
-# Setup step 5: Defines function to create an UNCONFIRMED test user in the DB where confirmed = 0
+# Setup step 3: Defines function to create an UNCONFIRMED test user in the DB where confirmed = 0
 def insert_test_user_unconfirmed():
-    # Set unconfirmed user test email address.
-    unconfirmed_user_test_email = f'{uuid.uuid4()}@mattmcdonnell.net'
-    test_password_unhashed = 'GLBMjKJ3qphUodwvqyF!+-='
-    test_password_hashed = generate_password_hash(test_password_unhashed)
-    # Insert a new test user into the database
-    db.execute('INSERT INTO users (name_first, name_last, birthdate, gender, user_email, username, pw_hashed, confirmed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-               "Test_Name_First_Unconfirmed", "Test_Name_Last_Unconfirmed", "1990-01-01", "male", unconfirmed_user_test_email, "TestUserunconfirmed", test_password_hashed, 0)
-    # Retrieve the inserted user's data
-    user_data_unconfirmed_user = db.execute("SELECT * FROM users WHERE user_email = ?", unconfirmed_user_test_email)    
-    if user_data_unconfirmed_user:
-        user_data_unconfirmed_user = user_data_unconfirmed_user[0] 
-        # Append the unhashed test password to the user_data_test_user 
-        # dict (done for easier testing).
-        user_data_unconfirmed_user['pw_unhashed'] = test_password_unhashed
-    else:
-        user_data_unconfirmed_user = None
-    return user_data_unconfirmed_user
+    with app.app_context():
+        # Set unregistered user test email address.
+        test_user_email = f'{uuid.uuid4()}@mattmcdonnell.net'
+        test_password_unhashed = 'GLBMjKJ3qphUodwvqyF!+-='
+        test_password_hashed = generate_password_hash(test_password_unhashed)
+        # Create a new User instance
+        test_user = User(
+            name_first="Test_Name_First",
+            name_last="Test_Name_Last",
+            birthdate=date(1990, 1, 1),
+            gender="male",
+            user_email=test_user_email,
+            username="TestUser",
+            pw_hashed=test_password_hashed,
+            confirmed=0,
+        )
+        # Add the new user to the session and commit it
+        db.session.add(test_user)
+        db.session.commit()
+        # Retrieve the inserted user's data
+        user_data_unconfirmed_user = User.query.filter_by(user_email = test_user_email).first()
+        # Take the first row    
+        if user_data_unconfirmed_user:
+            user_data_unconfirmed_user = user_data_unconfirmed_user.as_dict()
+            # Append the unhashed test password to the user_data_unconfirmed_user 
+            # dict (done for easier testing).
+            user_data_unconfirmed_user['pw_unhashed'] = test_password_unhashed
+            return user_data_unconfirmed_user
+        else:
+            print('running insert_test_user_unconfirmed... failed to create a test_user_unconfirmed')
+            user_data_unconfirmed_user = None
 
-# Setup step 6: Defines function to delete the unconfirmed test user
+
+# Setup step 4: Defines function to delete the unconfirmed test user
 def delete_test_user_unconfirmed(user_email):
-    db.execute("DELETE FROM users WHERE user_email = ?", user_email)
+    with app.app_context():
+        user_data_unconfirmed_user = User.query.filter_by(user_email = user_email).first()
+        if user_data_unconfirmed_user:
+            db.session.delete(user_data_unconfirmed_user)
+            db.session.commit()
+        else:
+            print(f'running delete_test_user_unconfirmed(user_email)... no user_data_unconfirmed_user found in DB.')
 
-# Setup step 7: Create an instance of app.py for testing.
+
+# Setup step 5: Create an instance of app.py for testing.
 @pytest.fixture
 def client():
     with app.test_client() as client:
         yield client
 
-# Setup step 8: Declare global variable for test number
+
+# Setup step 6: Define function to clear the users table
+def clear_users_table():
+    """Function to clear the 'users' table."""
+    with app.app_context():
+        # Query all records from the 'users' table and delete them
+        User.query.delete()
+        db.session.commit()
+
+
+
+# Setup step 7: Declare global variable for test number
 test_number = 0
 
 
@@ -118,6 +180,7 @@ test_number = 0
 
 # /login Test 1: Happy Path: user logs in w/ valid email address + valid password --> user redirected to / w/ success message.
 def test_login_happy_path(client):
+    #db = setup_test_database()
     global test_number
     test_number += 1
     print(f'Running test number: {test_number}')
@@ -139,11 +202,11 @@ def test_login_happy_path(client):
     }, follow_redirects=True)
 
     assert response.request.path == '/'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 # /login Test 2: User attempts to log in w/o valid CSRF token.
 def test_login_missing_CSRF(client):
+    #db = setup_test_database()
     global test_number
     test_number += 1
     print(f'Running test number: {test_number}')
@@ -165,7 +228,7 @@ def test_login_missing_CSRF(client):
     }, follow_redirects=True)
 
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 # /login Test 3: Tests for presence of CSP headers in page.
@@ -208,7 +271,7 @@ def test_login_without_email(client):
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -237,7 +300,7 @@ def test_login_without_pw(client):
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -267,7 +330,7 @@ def test_login_without_email_without_pw(client):
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 # /login Test 7: User enters undeliverable email address.
@@ -295,7 +358,7 @@ def test_login_undeliverable_email(client):
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -324,7 +387,7 @@ def test_login_with_unregistered_email(client):
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -353,7 +416,7 @@ def test_login_with_invalid_pw(client):
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -382,7 +445,7 @@ def test_login_with_invalid_username_invalid_pw(client):
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -405,13 +468,13 @@ def test_login_for_unconfirmed_user(client):
     # Simulate a POST request to /login
     response = client.post('/login', data={
         'csrf_token': csrf_token,
-        'user_email': 'unregistered@mattmcdonnell.net',
-        'password': 'InvalidPassword',
+        'user_email': test_user['user_email'],
+        'password': test_user['pw_unhashed'],
     }, follow_redirects=True)
     
     # Check if redirected to the login page
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -436,35 +499,37 @@ def test_login_for_unconfirmed_user(client):
     
 # /register Test 12: Happy path, scenario a (all fields, valid email, username, pw) --> user redirected to /index w/ success 
 def test_register_happy_path_part_a(client):
-    global test_number
-    test_number += 1
-    print(f'Running test number: {test_number}')
+    with app.app_context():
+        global test_number
+        test_number += 1
+        print(f'Running test number: {test_number}')
 
-    # Mock the email sending function
-    with patch('app.mail.send') as mock_send:
-        # Configure the mock to do nothing
-        mock_send.return_value = None
+        # Mock the email sending function
+        with patch('app.mail.send') as mock_send:
+            # Configure the mock to do nothing
+            mock_send.return_value = None
 
-        # Make a GET request to the register page to get the CSRF token
-        response = client.get('/register')
-        assert response.status_code == 200
-        html = response.data.decode()
-        csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
-    
-        response = client.post('/register', data={
-            'csrf_token': csrf_token,
-            'name_first': 'John',
-            'name_last': 'Doe',
-            'gender': 'male',
-            'birthdate': '1901-01-01',
-            'user_email': 'unregistered@mattmcdonnell.net',
-            'username': 'test_username',
-            'password': 'test123',
-            'password_confirmation': 'test123',
-        }, follow_redirects=True)
+            # Make a GET request to the register page to get the CSRF token
+            response = client.get('/register')
+            assert response.status_code == 200
+            html = response.data.decode()
+            csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+        
+            response = client.post('/register', data={
+                'csrf_token': csrf_token,
+                'name_first': 'John',
+                'name_last': 'Doe',
+                'gender': 'male',
+                'birthdate': '1901-01-01',
+                'user_email': 'unregistered@mattmcdonnell.net',
+                'username': 'test_username',
+                'password': 'test123',
+                'password_confirmation': 'test123',
+            }, follow_redirects=True)
 
-        mock_send.assert_called_once()
-        assert response.request.path == '/login'
+            mock_send.assert_called_once()
+            assert response.request.path == '/login'
+            clear_users_table()
 
 
 # /register Test 13: Happy path, scenario b (all req. fields, valid email, username, pw) --> user redirected to /index w/ success 
@@ -498,6 +563,7 @@ def test_register_happy_path_part_b(client):
 
         mock_send.assert_called_once()
         assert response.request.path == '/login'
+        clear_users_table()
 
 
 
@@ -536,8 +602,7 @@ def test_register_missing_CSRF(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /register Test 15: Tests for presence of CSP headers in page.
@@ -558,7 +623,7 @@ def test_register_csp_headers(client):
         # Check if CSP headers are set correctly in the response
         csp_header = response.headers.get('Content-Security-Policy')
         assert csp_header is not None
-
+        clear_users_table()
 
 
 # /register Test 16: Missing user email address.
@@ -592,7 +657,7 @@ def test_register_missing_email(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-
+        clear_users_table()
 
 # /register Test 17: Missing username.
 def test_register_missing_username(client):
@@ -625,7 +690,7 @@ def test_register_missing_username(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-
+        clear_users_table()
 
 # /register Test 18: Missing PW.
 def test_register_missing_pw(client):
@@ -658,7 +723,7 @@ def test_register_missing_pw(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-
+        clear_users_table()
 
 
 # /register Test 19: Missing PW confirmation.
@@ -692,7 +757,7 @@ def test_register_missing_pw_confirm(client):
     
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-
+        clear_users_table()
 
 # /register Test 20: Fails pw strength.
 def test_register_pw_strength(client):
@@ -725,7 +790,7 @@ def test_register_pw_strength(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-
+        clear_users_table()
 
 # /register Test 21: PW != PW confirmation.
 def test_register_pw_mismatch(client):
@@ -758,7 +823,7 @@ def test_register_pw_mismatch(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-
+        clear_users_table()
 
 # /register Test 22: User enters illegitimate email address.
 def test_register_bad_email(client):
@@ -791,6 +856,7 @@ def test_register_bad_email(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
+        clear_users_table()
 
 
 # /register Test 23: User enters prohibited chars.
@@ -824,6 +890,7 @@ def test_register_prohibited_chars(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
+        clear_users_table()
 
 
 # /register Test 24: User enters an already-registered username.
@@ -859,7 +926,7 @@ def test_register_duplicate_username(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-        delete_test_user(test_user['user_email'])
+        clear_users_table()
 
 
 # /register Test 25: User enters an already-registered email address.
@@ -895,8 +962,7 @@ def test_register_duplicate_email(client):
 
         mock_send.assert_not_called()
         assert response.request.path == '/register'
-        delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 
@@ -946,8 +1012,7 @@ def test_profile_happy_path(client):
     }, follow_redirects=True)
 
     assert profile_response.request.path == '/profile'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # /profile Test 27: User attempts to log in w/o valid CSRF token.
@@ -987,8 +1052,7 @@ def test_profile_missing_CSRF(client):
     }, follow_redirects=True)
 
     assert profile_response.request.path == '/profile'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # /profile Test 28: Tests for presence of CSP headers in page.
@@ -1021,7 +1085,7 @@ def test_profile_csp_headers(client):
     # Check if CSP headers are set correctly in the response
     csp_header = response.headers.get('Content-Security-Policy')
     assert csp_header is not None
-
+    clear_users_table()
 
 
 # /profile Test 29: Prohibited chars in user input (> in first name)
@@ -1062,8 +1126,7 @@ def test_profile_prohibited_chars(client):
     
     assert response.status_code == 400
     assert response.request.path == '/profile'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -1119,8 +1182,7 @@ def test_pw_change_happy_path(client):
     }, follow_redirects=True) 
     
     assert response.request.path == '/'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 31: /pw_change User attempts to log in w/o valid CSRF token.
@@ -1159,8 +1221,7 @@ def test_pw_change_missing_csrf(client):
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 32: Tests for presence of CSP headers in page.
@@ -1195,7 +1256,6 @@ def test_pw_change_csp_headers(client):
     assert csp_header is not None
 
 
-
 # Test 33: /pw_change No user email submitted
 def test_pw_change_no_user_email(client):
     global test_number
@@ -1228,12 +1288,11 @@ def test_pw_change_no_user_email(client):
         'user_email': '',
         'password': test_user['pw_unhashed'],
         'password': 'test1234',
-        'password_confirmationed': 'test1234'
+        'password_confirmation': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 34: /pw_change No current pw submitted
@@ -1268,12 +1327,11 @@ def test_pw_change_no_pw(client):
         'user_email': test_user['user_email'],
         'password': '',
         'password': 'test1234',
-        'password_confirmationed': 'test1234'
+        'password_confirmation': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 35: /pw_change No new pw submitted
@@ -1308,12 +1366,11 @@ def test_pw_change_no_new_pw(client):
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
         'password': '',
-        'password_confirmationed': 'test1234'
+        'password_confirmation': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 36: /pw_change No new pw confirmation submitted
@@ -1348,12 +1405,11 @@ def test_pw_change_no_new_pw_confirm(client):
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
         'password': 'test1234',
-        'password_confirmationed': ''
+        'password_confirmation': ''
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 37: /pw_change No prohibited chars submitted
@@ -1388,12 +1444,11 @@ def test_pw_change_no_prohibited_chars(client):
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
         'password': 'test1234>*&$',
-        'password_confirmationed': 'test1234'
+        'password_confirmation': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 38: /pw_change New password does not meet strength requirements
@@ -1428,12 +1483,11 @@ def test_pw_change_pw_strength(client):
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
         'password': 'a',
-        'password_confirmationed': 'a'
+        'password_confirmation': 'a'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 39: /pw_change New password and new password confirmation don't match
@@ -1468,12 +1522,11 @@ def test_pw_change_matching_pws(client):
         'user_email': test_user['user_email'],
         'password': test_user['pw_unhashed'],
         'password': 'test1234',
-        'password_confirmationed': 'test12345'
+        'password_confirmation': 'test12345'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 40: /pw_change User-entered email is not registered in DB
@@ -1508,12 +1561,11 @@ def test_pw_change_registered_email(client):
         'user_email': 'unregistered@mattmcdonnell.net',
         'password': test_user['pw_unhashed'],
         'password': 'test1234',
-        'password_confirmationed': 'test1234'
+        'password_confirmation': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 41: /pw_change User entered incorrect value for current PW
@@ -1548,13 +1600,11 @@ def test_pw_change_correct_current_pw(client):
         'user_email': test_user['user_email'],
         'password': 'invalid_password',
         'password': 'test1234',
-        'password_confirmationed': 'test1234'
+        'password_confirmation': 'test1234'
     }, follow_redirects=True) 
     
     assert response.request.path == '/pw_change'
-    delete_test_user(test_user['user_email'])
-
-
+    clear_users_table()
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -1574,8 +1624,6 @@ def test_pw_reset_req_happy_path(client):
     global test_number
     test_number += 1
     print(f'Running test number: {test_number}')
-
-    
 
     test_user = insert_test_user()
 
@@ -1600,8 +1648,7 @@ def test_pw_reset_req_happy_path(client):
         mock_send_mail.assert_called_once()
 
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 43: /pw_reset_req User attempts to log in w/o valid CSRF token.
@@ -1631,8 +1678,7 @@ def test_pw_reset_req_missing_csrf(client):
 
         
     assert response.request.path == '/pw_reset_req'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 44: /pw_reset_req Tests for presence of CSP headers in page.
@@ -1665,7 +1711,7 @@ def test_pw_reset_req_csp_headers(client):
     # Check if CSP headers are set correctly in the response
     csp_header = response.headers.get('Content-Security-Policy')
     assert csp_header is not None
-
+    clear_users_table()
 
 
 # Test 45: /pw_reset_req User submitted no value for email
@@ -1694,7 +1740,7 @@ def test_pw_reset_req_no_email_submitted(client):
         }, follow_redirects=True)
 
     assert response.request.path == '/pw_reset_req'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -1724,7 +1770,7 @@ def test_pw_reset_req_invalid_chars(client):
         }, follow_redirects=True)
 
     assert response.request.path == '/pw_reset_req'
-    delete_test_user(test_user['user_email'])
+    clear_users_table()
 
 
 
@@ -1742,7 +1788,6 @@ def test_pw_reset_req_valid_email_format(client):
     html = response.data.decode()
     csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-
     # Mock the mail.send function
     with patch('flask_mail.Mail.send') as mock_send_mail:
         # Configure the mock to do nothing
@@ -1754,8 +1799,7 @@ def test_pw_reset_req_valid_email_format(client):
         }, follow_redirects=True)
 
     assert response.request.path == '/pw_reset_req'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # Test 48: /pw_reset_req User-entered email not in database
@@ -1784,8 +1828,7 @@ def test_pw_reset_req_unregistered_email(client):
         }, follow_redirects=True)
 
     assert response.request.path == '/login'
-    delete_test_user(test_user['user_email'])
-
+    clear_users_table()
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -1858,14 +1901,7 @@ def test_pw_reset_new_happy_path(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/'
-    
-    
-
-
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 50: User attempts to log in w/o valid CSRF token.
@@ -1901,9 +1937,7 @@ def test_pw_reset_new_missing_csrf(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
+        clear_users_table()
 
 
 
@@ -1943,11 +1977,8 @@ def test_pw_reset_new_csp_headers(client):
         assert csp_header is not None
 
         # Verify that the response is a redirect to the home page
-        #assert response.request.path == '/login'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        assert response.request.path == '/login'
+        clear_users_table()
 
 
 # /pw_reset/new Test 52: Invalid token- user submits invalid token via GET 
@@ -1984,10 +2015,7 @@ def test_pw_reset_new_bad_token_get(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/login'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 53: Missing value for pw_reset_new
@@ -2023,10 +2051,7 @@ def test_pw_reset_new_missing_pw_reset_new(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 54: Missing value for pw_reset_new_confirm
@@ -2062,10 +2087,7 @@ def test_pw_reset_new_missing_pw_reset_new_confirm(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 55: Missing value for pw_reset_new and pw_reset_new_confirm
@@ -2101,10 +2123,7 @@ def test_pw_reset_new_missing_pw_reset_new_and_confirm(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 56: User enters prohibited chars
@@ -2140,10 +2159,7 @@ def test_pw_reset_new_prohibited_chars(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 57: User enters insufficiently strong PW
@@ -2179,10 +2195,7 @@ def test_pw_reset_new_weak_new_pw(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 58: Mismatching pw_reset_new and pw_reset_new_confirm
@@ -2218,10 +2231,7 @@ def test_pw_reset_new_pw_mismatch(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
+        clear_users_table()
 
 
 # /pw_reset/new Test 59: New password matches old password
@@ -2257,11 +2267,7 @@ def test_pw_reset_new_pw_new_pw_matches_old_pw(client):
 
         # Verify that the response is a redirect to the home page
         assert response.request.path == '/pw_reset_new/valid_token'
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
-
-
+        clear_users_table()
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -2298,6 +2304,4 @@ def test_register_confirmation_happy_path(client):
 
         # Check that the response redirects to the index page
         assert expected_url in response.location
-
-    # Clean up: Delete the test user
-    delete_test_user(test_user['user_email'])
+        clear_users_table()

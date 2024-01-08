@@ -5,8 +5,10 @@ load_dotenv()
 import DNS
 from email_validator import validate_email, EmailNotValidError
 from flask import Flask, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for, url_for
+import flask
 from flask_mail import Mail, Message
 from flask_session import Session
+from flask_sqlalchemy import SQLAlchemy
 from flask_talisman import Talisman
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect, generate_csrf
@@ -15,24 +17,64 @@ from html import escape
 from itsdangerous import TimedSerializer as Serializer
 import os
 import re
+from sqlalchemy import func
 import time
 from urllib.parse import unquote
 from werkzeug.security import check_password_hash, generate_password_hash
 from wtforms import DateField, EmailField, PasswordField, SelectField, StringField, SubmitField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, Regexp, StopValidation
 
+app = Flask(__name__)
 
-# --------------------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------------------------
 
 
 # Determine the environment and configure the database accordingly
-if os.getenv('FLASK_ENV') == 'testing':
-    db = SQL(os.getenv('TEST_DATABASE_URL'))
-else:
-    db = SQL(os.getenv('DATABASE_URL'))
+# Configure SQLAlchemy with your SQLite database
+# Get the base directory of your app
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+# Use environment variables to get database file names
+database_url = os.getenv('DATABASE_URL')
+test_database_url = os.getenv('TEST_DATABASE_URL')
+
+# If in testing environment, use test database; else use main database
+database_file = test_database_url if os.getenv('FLASK_ENV') == 'testing' else database_url
+
+# Remove 'sqlite:///' from the database_file string
+database_file = database_file.replace('sqlite:///', '')
+
+# Construct the full path for the database file
+full_database_path = os.path.join(basedir, database_file)
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{full_database_path}'
 
 
-# -------------------------------------------------------------------------------------------
+# Disable SQLAlchemy modification tracking for performance
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Create the SQLAlchemy db instance
+db = SQLAlchemy(app)
+
+class User(db.Model):
+    __tablename__ = 'users'
+
+    user_id = db.Column(db.Integer, primary_key=True)
+    name_first = db.Column(db.String(50))
+    name_last = db.Column(db.String(50))
+    birthdate = db.Column(db.Date)
+    gender = db.Column(db.String(20))
+    user_email = db.Column(db.String(320), unique=True, nullable=False)
+    username = db.Column(db.String(50), nullable=False)
+    pw_hashed = db.Column(db.String(80), nullable=False)
+    confirmed = db.Column(db.Integer, nullable=False, default=0)
+    created = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+
+# -------------------------------------------------------------------------------------------------
 
 
 # Custom filter summary:
@@ -48,17 +90,16 @@ def lowercase_filter(input):
     return input.lower() if input else input
 
 
-# ------------------------------------------------------------------------------------
-
-
 # Custom validator summary:
     # Custom validator 1: Checks user input for prohibited chars.
     # Custom validator 2: Checks user input for password strength requirements.
-    # Custom validator 3: Checks if user input matches username associated with session[]
-    # Custom validator 4: Checks if user input matches password associated with session['user_id']
-    # Custom validator 5: Checks if user input differs from password associated with session['user_id']
-    # Custom validator 6: Allows birthdate to be optional w/o causing flask form validation issues
-    # Custom validator 7: Checks if user input matches email address registered & active in DB.
+    # Custom validator 3: Checks if user input matches registered username
+    # Custom validator 4: Checks if user input matches registered email address.
+    # Custom validator 5: Checks if user input matches email associated with session[]
+    # Custom validator 6: Checks if user input matches password associated with session['user_id']
+    # Custom validator 7: Checks if user input differs from password associated with session['user_id']
+    # Custom validator 8: Allows birthdate to be optional w/o causing flask form validation issues
+    # Custom validator 9: Checks if user-inputted email address and user-inputted password match an registered+active account in DB.
 
 
 # Custom validator 1: Ensure user input does not contain prohibited 
@@ -109,7 +150,51 @@ def pw_strength_check_validator(form, field):
         return field.data
     
 
-# Custom validator 3: Ensure user-entered username matches username associated with session[] 
+# Custom validator 3: Checks if user input matches registered username
+# Define function.
+def username_registered_check(user_input):
+    print(f'running username_registered_check... user_input is: { user_input }')
+    
+    user_data = User.query.filter(User.username == user_input).first()
+    
+    if not user_data:
+        print(f'running username_registered_check... user input unavailable as a username: { user_input }.')
+        return True
+    else:
+        print(f'running username_registered_check... user input available as a username: { user_input }.')
+        return False
+# Define validator
+def username_registered_check_validator(form, field):
+    if not username_registered_check(field.data):
+        print(f'running username_registered_check_validator... user input available as a username: { field.data }.')
+        raise ValidationError(f'Invalid entry for "{field.label.text}." Please select a different username or if you have already registered, log in.')
+    else:
+        return field.data
+     
+
+# Custom validator 4: Checks if user input matches registered email address.
+# Define function.
+def user_email_registered_check(user_input):
+    print(f'running user_email_registered_check... user_input is: { user_input }')
+    
+    user_data = User.query.filter(User.user_email == user_input).first()
+
+    if not user_data:
+        print(f'running user_email_registered_check... user input available as a username: { user_input }.') 
+        return True
+    else:
+        print(f'running user_email_registered_check... user input available as a username: { user_input }.')
+        return False
+# Define validator
+def user_email_registered_check_validator(form, field):
+    if not user_email_registered_check(field.data):
+        print(f'running user_email_registered_check_validator... user input available as a username: { field.data }.')
+        raise ValidationError(f'Invalid entry for "{field.label.text}." Please use a different email address or if you have already registered, log in.')
+    else:
+        return field.data
+
+
+# Custom validator 5: Ensure user input matches email associated with session[] 
 # Define validator
 def email_logged_in_validator(form, field):
     if field.data.lower() != session['user_email'].lower():
@@ -120,19 +205,22 @@ def email_logged_in_validator(form, field):
         return field.data
 
 
-# Custom validator 4: Ensure user-entered current password matches password for 
+# Custom validator 6: Ensure user-entered current password matches password for 
 # currently logged-in user (matches on user_id).
 # Defines function:
 def password_matches_existing(user_input):
-    user_data = db.execute('SELECT * FROM users WHERE user_id = ?', session['user_id'])
+    user_data = User.query.filter_by(user_id=session['user_id']).first()
     if user_data:
-        user_data = user_data[0]
-        if check_password_hash(user_data['pw_hashed'], user_input):
+        print(f'running password_matches_existing()... user found and user_data is: { user_data }') 
+        if check_password_hash(user_data.pw_hashed, user_input):
+            print(f'running password_matches_existing()... user_data.pw_hashed is: { user_data.pw_hashed }')
+            print(f'running password_matches_existing()... user_input is: { user_input }')
+            print(f'running password_matches_existing()... user found and user-entered password matches that in the DB. Returning True.')
             return True
         else:
-            return False
+            print(f'running password_matches_existing()... user found, but user-entered password does not match that in the DB.')
     else:
-        return False
+        print(f'running password_matches_existing()... user not fount.')
 # Defines validator:
 def password_matches_existing_true_validator(form, field):
     if not password_matches_existing(field.data):
@@ -142,7 +230,7 @@ def password_matches_existing_true_validator(form, field):
         return field.data
 
 
-# Custom validator 5: Ensure user-entered data DOES NOT match current password for user.
+# Custom validator 7: Ensure user-entered data DOES NOT match current password for user.
 def password_matches_existing_false_validator(form, field):
     if password_matches_existing(field.data):
         print(f'Custom validator "password_matches_existing_false_validator" failed for input: {field.data}')
@@ -151,7 +239,7 @@ def password_matches_existing_false_validator(form, field):
         return field.data
      
 
-# Custom validator 6: Allow birthdate to be optional w/o causing validation issues.
+# Custom validator 8: Allow birthdate to be optional w/o causing validation issues.
 class OptionalIfDate(Optional):
     """Custom validator: makes a DateField optional if no data entered"""
     def __call__(self, form, field):
@@ -160,26 +248,26 @@ class OptionalIfDate(Optional):
             raise StopValidation()
 
 
-# Custom validator 7: Checks if user-inputted email and password match an active user in DB. 
+# Custom validator 9: Checks if user-inputted email and user-inputted password match an active user in DB. 
 # Defines function (returns True if passed)
-def user_email_registered_check(user_inputted_email, user_inputted_password):
-    user_data = db.execute(
-                'SELECT * FROM users WHERE user_email = ?', (user_inputted_email))
-    if len(user_data) == 1:
-        user_data = user_data[0]
-        if user_data['confirmed'] == 1:  
-            if check_password_hash(user_data['pw_hashed'], user_inputted_password):
-                return True
-            else:
-                print(f'running user_email_registered_check(user_inputted_email, user_inputted_password)... user inputted valid email address of: {user_inputted_email}, and user_data[confirmed] was: {user_data["confirmed"]}, but the user did not input the matching password for that email address.')
-                return False
+def user_email_and_password_registered_check(user_inputted_email, user_inputted_password):
+    print(f'running user_email_and_password_registered_check... user_inputted_email is: { user_inputted_email }')
+    print(f'running user_email_and_password_registered_check... user_inputted_password is: { user_inputted_password }')
+
+    user_data = User.query.filter(User.user_email == user_inputted_email).first()
+    print(f'running user_email_and_password_registered_check... user_data is: { user_data }')
+
+    if user_data:
+        print(f'running user_email_and_password_registered_check... user_data.confirmed is: { user_data.confirmed }') 
+        if user_data.confirmed == 1 and check_password_hash(user_data.pw_hashed, user_inputted_password):
+            print('Validation passed.')
+            return True
         else:
-            print(f'running user_email_registered_check(user_inputted_email, user_inputted_password)... user inputted valid email address of: {user_inputted_email}, but returned False b/c user_data[confirmed] was: {user_data["confirmed"]}.')
+            print('Validation failed.')
+            return False
     else:
-        print(f'running user_email_registered_check(user_inputted_email, user_inputted_password)... returned False b/c user inputted an invalid email address of: {user_inputted_email}.')
+        print('No user data found.')
         return False
-
-
 
 
 # ------------------------------------------------------------------------------------
@@ -239,9 +327,10 @@ class RegisterForm(FlaskForm):
     ('male', 'Male'),
     ('undisclosed', "I'd rather not say")
     ], validators=[Optional()], default='undisclosed', render_kw={"class": "form-select"})
-    birthdate = DateField('Birthdate', validators=[Optional()])
-    username = StringField('Username', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
-    user_email = EmailField('Email address', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True})
+    birthdate = DateField('Birthdate', format='%Y-%m-%d', validators=[OptionalIfDate()])
+    username = StringField('Username', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator,username_registered_check_validator], render_kw={'required': True})
+    
+    user_email = EmailField('Email address', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator, user_email_registered_check_validator], render_kw={'required': True})
     password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator, pw_strength_check_validator])
     password_confirmation = PasswordField('Password confirmation', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.'), allowed_chars_validator], render_kw={'required': True})
     submit_button = SubmitField('Register')
@@ -249,9 +338,6 @@ class RegisterForm(FlaskForm):
 
 # ------------------------------------------------------------------------------------------
 
-app = Flask(__name__)
-
-# -------------------------------------------------------------------------------------------------
 
 # Enabling CSRF for Flask
 csrf = CSRFProtect(app)
@@ -323,14 +409,14 @@ mail = Mail(app)
 
 
 # ----------------------------------------------------------------------------------------
-
+max_token_age_seconds = 900
 
 # Token generation for password reset
 def get_reset_token(user_id):
     s = Serializer(app.config['SECRET_KEY'], salt='reset-salt')
     return s.dumps({'user_id': user_id})
 
-def verify_reset_token(token, max_age=900):
+def verify_reset_token(token, max_age=max_token_age_seconds):
     s = Serializer(app.config['SECRET_KEY'], salt='reset-salt')
     try:
         data = s.loads(token, max_age=max_age)
@@ -338,30 +424,37 @@ def verify_reset_token(token, max_age=900):
     except:
         return None
     
-    user_data = db.execute('SELECT * FROM users WHERE user_id = ?', user_id)
+    user_data = User.query.filter_by(user_id=user_id).first()
     if user_data:
-        return user_data[0]
+        return user_data.as_dict()
     else:
         return None
 
 
-# ----------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 
 
 def auto_database_cleanup():
     
-    # Step 1: Calculate the time 24 hours ago from now
-    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+    # Step 1: Calculate the time before which unconfirmed records will be deleted
+    cutoff_time = datetime.now(timezone.utc) - timedelta(seconds=max_token_age_seconds)
     
     # Step 2: Run DB command to delete users that are (a) unconfirmed and (b) created before
     # cutoff time.
-    query = "DELETE FROM users WHERE confirmed = 0 AND datetime(created) < ?"
-    db.execute(query, cutoff_time)
+    User.query.filter(User.confirmed == 0, User.created < cutoff_time).delete()
+    db.session.commit()
 
 
 
 # ----------------------------------------------------------------------------------------
 
+
+with app.app_context():
+    # Create all tables that do not exist yet
+    db.create_all()
+
+
+# ----------------------------------------------------------------------------------------
 
 
 @app.route('/')
@@ -384,30 +477,28 @@ def index():
 @app.route('/check_email_availability', methods=['POST'])
 def check_email_availability():
     print(f'running /check_email_availability route...')
+    print(f'running /check_email_availability route... request headers is: {request.headers}')
+    print(f'running /check_email_availability route... CSRF token in flask is: {request.headers.get("X-CSRFToken")}')
     
     # Get the user-submitted email address from the POST request data
     user_email = request.form.get('user_email')
+    print(f"running /check_email_availability... user_email is: { user_email }")
     
     # Perform the database query to check username availability
-    user_email_db_pull = db.execute(
-            'SELECT * FROM users WHERE LOWER(user_email) = LOWER(?)', (user_email,)
-        )
-        
-    print(f'running /email_check_availability... the value of user_email is: {user_email}')
-    print(f'running /email_check_availability... the value of user_email_db_pull is: {user_email_db_pull}')
+    user_count = User.query.filter(func.lower(User.user_email) == user_email).count()
+    print(f'running /check_email_availability... user_count is: { user_count }.')
 
-    if len(user_email_db_pull) > 0:
-        print(f'running /check_email_availability... duplicate email address found for email address: {user_email}')
-        email_check_result = 'already_registered'
+    if user_count == 0:
+        print(f'running /check_email_availability... available email address: {user_email}')
+        available = 'available'
     else:
-        email_check_result = 'available'
-        print(f'running /check_email_availability... no duplicate email address found for email address: {user_email}')
+        print(f'running /check_email_availability... duplicate email address found for email address: {user_email}')
+        available = 'unavailable'
 
-    print(f'running /check_email_availability... email_check_result is: {email_check_result}')
-    return jsonify({'email_check_result': email_check_result})
+    return jsonify({'available': available})
 
 
-# -----------------------   -----------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 
 
 # Route checks for username availability in real-time and feeds into HTML 
@@ -420,16 +511,19 @@ def check_username_availability():
     
     # Get the username from the POST request data
     username = request.form.get('username')
-    print(f"running /check_username_availability route... username is: {username}")
+    print(f"running /check_username_availability... username is: {username}")
 
     # Perform the database query to check username availability
-    if len(db.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(:username)", username=username)) == 0:
+    user_count = User.query.filter(func.lower(User.username) == username).count()
+    print(f'running /check_username_availability... user_count is{ user_count }.')
+
+    if user_count == 0:
         available = 'available'
     else:
         available = 'unavailable'
-
+    
     # Return a JSON response indicating availability
-    print(f"running /check_username_availability route on username: {username}... available is: {available}")
+    print(f"running /check_username_availability... for username: {username}, available status is: {available}")
     return jsonify({'available': available})
 
 
@@ -510,6 +604,9 @@ def csp_report():
 def login():
     print(f'Running /login route... route started')
     print(f'Running /login route... session is:{session}')
+    # THROWAWAY CODE
+    print("Database URL:", app.config['SQLALCHEMY_DATABASE_URI'])
+
 
     nonce = generate_nonce()
     print(f'Running /login route... nonce is:{nonce}')
@@ -535,10 +632,12 @@ def login():
             # Step 3.1.1: Pull in user-entered data from form.
             user_inputted_email = form.user_email.data
             user_inputted_password = form.password.data
+            print(f'Running /login route... user_inputted_email is:{ user_inputted_email }')
+            print(f'Running /login route... user_inputted_password is:{ user_inputted_password }')
 
             # Step 3.1.2: Check if (a) user entered email is valid in DB and (b) if user-entered
             # email and password are a valid match in DB (True if passes)
-            if not user_email_registered_check(user_inputted_email, user_inputted_password):
+            if not user_email_and_password_registered_check(user_inputted_email, user_inputted_password):
                 print(f'Running /login route... encountered error 3.1.2')
                 session['temp_flash'] = 'Error 3.1.2: Invalid username or password. If you have not yet registered, please click the link below. If you have recently requested a password reset, check your email inbox and spam folders.'
                 return redirect(url_for('login'))
@@ -548,10 +647,12 @@ def login():
             # Step 3.1.5.1: Iterate across all the keys in user_data, except the password, which 
             # is excluded for security reasons.
             
-            user_data = db.execute(
-                'SELECT * FROM users WHERE user_email = ?', (user_inputted_email))
-            user_data = user_data[0]
-            
+            user_data = User.query.filter(User.user_email == user_inputted_email).first()
+
+            if user_data:
+                # Convert the SQLAlchemy object to a dictionary
+                user_data = vars(user_data)
+
             for key in user_data:
                 if key != 'pw_hashed':
                     session[key] = user_data[key]
@@ -600,7 +701,7 @@ def logout():
 def profile():
 
     # Test for session persistance across routes
-    print(f'Running /profile route..., session is: {session}')
+    print(f'Running /profile route... session is: {session}')
 
     # Step 1: Create an instance of the ProfileForm
     form = ProfileForm()
@@ -628,9 +729,18 @@ def profile():
                     # Step 2.1.2.3: If empty, update it with the value from session, if available
                     user_data_submitted[key] = session.get(key, session[key])
 
-            # Step 2.1.3: Prepare and run SQL query (note SQL injection vulnerability)
-            query = 'UPDATE users SET name_first = ?, name_last = ?, username = ?, gender = ?, birthdate = ? WHERE user_id = ?'
-            db.execute(query, user_data_submitted['name_first'], user_data_submitted['name_last'], user_data_submitted['username'], user_data_submitted['gender'], user_data_submitted['birthdate'], session['user_id'])
+            # Step 2.1.3: Prepare and run SQL query
+            user = User.query.filter_by(user_id=session['user_id']).first()
+
+            if user:
+                user.name_first = user_data_submitted['name_first']
+                user.name_last = user_data_submitted['name_last']
+                user.username = user_data_submitted['username']
+                user.gender = user_data_submitted['gender']
+                user.birthdate = user_data_submitted['birthdate']
+
+            # Commit the changes
+            db.session.commit() 
             
             # Step 2.1.4: Update session by iterating across all the keys in user_data_submitted, 
             # except the password, which is excluded for security reasons.
@@ -699,10 +809,14 @@ def pw_change():
             # Step 2.1.3: Hash the new password
             password_hashed = generate_password_hash(password)
 
-            # Step 2.1.4: Insert the username and hashed password into their corresponding columns in the DB.
-            db.execute(
-                'UPDATE users SET pw_hashed = (?) WHERE user_id = (?)', password_hashed, session['user_id']
-            )
+            # Step 2.1.4: Insert the hashed password into its corresponding column in the DB.
+            user = User.query.filter_by(user_id=session['user_id']).first()
+
+            if user:
+                user.pw_hashed = password_hashed
+
+            # Commit the changes
+            db.session.commit()
 
             # Step 2.1.5: Flash an indication to the user that the password pw_change 
             # was successful and then redirect to index.
@@ -761,27 +875,21 @@ def pw_reset_req():
             print(f'Running /pw_reset_req route... pw_reset_email is: {pw_reset_email}.')
 
             # Step 2.1.2: Do DB pull, trying to match on user-provided email.
-            user_data = db.execute(
-                'SELECT * FROM users WHERE user_email = ?', (pw_reset_email)
-            )
-            print(f'Running /pw_reset_req route... user_data is: {user_data}.')
-
-            # Step 3.1.3: If no match, show success message anyway and redirect to login.
-            if len(user_data) != 1:
-                print(f'Running /pw_reset_req route... Error 3.1.3: User tried to reset password using unregistered email address. User data is: {user_data}.')
+            user_data = User.query.filter_by(user_email=pw_reset_email).first()
+            
+            if user_data:
+                user_data = user_data.as_dict()
+                print(f'Running /pw_reset_req route... user_data found and is: {user_data}.')
+            else:
+                print(f'Running /pw_reset_req route... Error 2.1.2: User tried to reset password using unregistered pw_reset_email of: { pw_reset_email }.')
                 session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!' 
                 return redirect(url_for('login'))
-
-            # Checks have passed. Proceed to generate and send token via email.
-            # Step 3.1.4: Take first record in user_data.
-            user_data = user_data[0]
-            print(f'Running /pw_reset_req route... user_data[0] is: {user_data}.')
             
-            # Step 3.1.5: Generate a token for the user
+            # Step 2.1.4: Generate a token for the user
             token = get_reset_token(user_data['user_id'])
             print(f'Running /pw_reset_req route... token generated.')
                 
-            # Step 3.1.6: Set variables for email to be sent.
+            # Step 2.1.5: Set variables for email to be sent.
             username = user_data['username']
             sender = 'info@mattmcdonnell.net'
             subject = 'Password reset from SavorScript'
@@ -793,12 +901,12 @@ If you did not make this request, you may ignore it.
 Thank you,
 Team SavorScript'''
             
-            # Step 3.1.7: Send email.
+            # Step 2.1.6: Send email.
             msg = Message(subject=subject, body=body, sender=sender, recipients=[pw_reset_email])
             mail.send(msg)
             print(f'Running /pw_reset_req route... reset email sent to email address: {pw_reset_email}.')
 
-            # Step 3.1.8: Flash success message and redirect to index.
+            # Step 2.1.7: Flash success message and redirect to index.
             print(f'Running /pw_reset_req route... flashed success message and redirected user to index.')
             session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!'    
             return redirect(url_for('login'))
@@ -866,23 +974,25 @@ def pw_reset_new(token):
             # Step 2.1.2: Pull in data submitted by the user via the form
             password = form.password.data
             print(f'Running /pw_reset_new route... pulled in password_new.')
+            # THROWAWAY CODE
+            print(f'Running /pw_reset_new route... password is: { password }.')
 
-            # Step 2.1.3: Hash the new password.
-            pw_hashed = generate_password_hash(password)
-            print(f'Running /pw_reset_new route... new pw_hashed generated.')
-        
             # Step 2.1.4: Insert the new username and hashed password into their 
             # corresponding columns in the DB.
-            db.execute(
-            'UPDATE users SET pw_hashed = ? WHERE user_id = ?', pw_hashed, session['user_id']
-            )
-            print(f'Running /pw_reset_new route... updated DB with new_pw_hashed for session["user_id"]: {session["user_id"]}')
+            user = User.query.filter_by(user_id=session['user_id']).first()
             
-
-            # Step 2.1.5: Inform the user that the password was changes successfully.
-            print(f'Running /pw_reset_new route... flashed success message and redirected to index.')
-            session['temp_flash'] = 'Success! Password changed successfully.'
-            return redirect(url_for('login'))
+            if user:
+                user.pw_hashed = generate_password_hash(password)
+                # THROWAWAY CODE
+                print(f'Running /pw_reset_new route... user.pw_hashed is: { user.pw_hashed }.')
+                db.session.commit()
+                print(f'Running /pw_reset_new route... user_data found and is: { user }. Flashed success message and redirected to index.')
+                session['temp_flash'] = 'Success! Password changed successfully.'
+                return redirect(url_for('login'))
+            else:
+                print(f'Running /pw_reset_new route... Error 2.1.3: User tried to reset password using unregistered pw_reset_email of: { pw_reset_email }.')
+                session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!' 
+                return redirect(url_for('login'))
         
         # Step 2.2: If the user submitted via post and the input fails form validation,
         # do the following...
@@ -915,8 +1025,8 @@ def pw_reset_new(token):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    print(f'Running /register route... route started')
-    print(f'Running /register route... session is:{session}')
+    print(f'Running /register... route started')
+    print(f'Running /register... session is:{session}')
 
     # Step 1: Display Flask-WTF RegisterForm (defined above)
     form = RegisterForm()
@@ -936,42 +1046,33 @@ def register():
         
         # Step 3.1: Handle submission via post that passes the classes' validation.
         if form.validate_on_submit():
-            
-            # Step 3.1.2: Additional validation: Check if user-provided username is already taken.
-            duplicates_username = db.execute(
-            'SELECT * FROM users WHERE LOWER(username) = LOWER(?)', form.username.data
-            )
-            if len(duplicates_username) > 0:
-                print('Running /register route... Step 3.1.2 failed')
-                session['temp_flash'] = f'Error 3.1.2: Username is already registered. Please select a different username or log in if you are already registered.'
-                return redirect(url_for('register'))
 
-            # Step 3.1.3: Additional validation: Check if user-provided email address is already registered. 
-            duplicates_user_email = db.execute(
-                'SELECT * FROM users WHERE user_email = ?', form.user_email.data
+            new_user = User (
+                name_first = form.name_first.data or None,
+                name_last = form.name_last.data or None,
+                birthdate = form.birthdate.data or None,
+                gender = form.gender.data if form.gender.data != '' else None,
+                user_email = form.user_email.data,
+                username = form.username.data,
+                pw_hashed = generate_password_hash(form.password.data) if form.password.data else None,
+                confirmed = 0,
+                created = datetime.now(timezone.utc),
             )
-            if len(duplicates_user_email) > 0:
-                print('Running /register route... Step 3.1.3 failed')
-                session['temp_flash'] = 'Error 3.1.3: Email address is already registered. Please log in or reset your password via the links below.'
-                return redirect(url_for('register'))
             
-            # All validation passed: proceed with registration. 
-            # Step 3.1.4: Hash the user-inputted password.
-            pw_hashed = generate_password_hash(form.password.data)
             
-            # Step 3.1.5: Insert the new user's data into the DB (note that confirmed is initially set to 0)
-            query = 'INSERT INTO users (name_first, name_last, birthdate, gender, user_email, username, pw_hashed, confirmed, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-            db.execute(query, form.name_first.data, form.name_last.data, form.birthdate.data, form.gender.data, form.user_email.data, form.username.data, pw_hashed, 0, datetime.now(timezone.utc))
+            # Step 3.1.2: Insert the new user's data into the DB (note that confirmed is initially set to 0)
+            db.session.add(new_user)
+            db.session.commit()
+            print(f'Running /register... user added to database.')
 
-            # 3.1.6: Perform DB query to get the DB-generated user_id for this user (needed for token)
-            user_data = db.execute('SELECT * FROM users WHERE user_email = ?', form.user_email.data)
-            user_data = user_data[0]
+            # 3.1.3: Perform DB query to get the DB-generated user_id for this user (needed for token)
+            user_data = User.query.filter(User.user_email == new_user.user_email).first().as_dict()
             user_id = user_data['user_id']
 
-            # Step 3.1.7: Generate a token associated with the updated user's email address.
+            # Step 3.1.4: Generate a token associated with the updated user's email address.
             token = get_reset_token(user_id)
                 
-            # Step 3.1.8: Set variables for email to be sent.
+            # Step 3.1.5: Set variables for email to be sent.
             username = user_data['username']
             sender = 'info@mattmcdonnell.net'
             recipients=[user_data['user_email']]
@@ -984,17 +1085,21 @@ Please note that this link will expire in 10 minutes.
 Thank you,
 Team SavorScript'''
             
-            # Step 3.1.9: Send email.
+            # Step 3.1.6: Send email.
             msg = Message(subject=subject, body=body, sender=sender, recipients=recipients)
             mail.send(msg)  
         
-            # Step 3.1.10: Flash message and redirect to login.
+            # Step 3.1.7: Flash message and redirect to login.
             session['temp_flash'] = 'We have sent you an email to confirm your registration with SavorScript. Please do not forget to check your spam folder!'    
             return redirect(url_for('login'))
         
         # Step 3.2: Do the following if user submits via post, but input fails validators.
         else:
-            print('Running /register route... Step 3.2 failed')
+            print('Running /register... Step 3.2 failed')
+            # Iterate over the form's fields to print validation errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    print(f"Running /register... error in {field}: {error}")
             session['temp_flash'] = 'There were errors in your form. Please see the error messages below to correct your input.'    
             return render_template('register.html',
                                form=form, 
@@ -1033,10 +1138,11 @@ def register_confirmation(token):
     # Step 1.2: Take that decoded token and tell me what user_data dict generated 
     # it by returning that user's user_id.
     user = verify_reset_token(decoded_token)
-    print(f'running /user_confirmation... user is: {user}')
+    user_id = user['user_id'] if user else None
+    print(f'running /register_confirmation... user is: { user_id }')
     
     # Step 2: If lands on page w/o correct url token, flash an error and redirect to login.
-    if not user:
+    if not user_id:
         # Step 2.1: Decode the token, ignoring expiration. This is done to retrieve the user_id.
         s = Serializer(app.config['SECRET_KEY'], salt='reset-salt')
         try:
@@ -1049,44 +1155,42 @@ def register_confirmation(token):
         # This is done to avoid stale, unconfirmed users from populating the DB.
         if user_id:
             # Step 2.2.1: Delete the unconfirmed user record, flash error, and redirect to login. 
-            db.execute('DELETE FROM users WHERE user_id = ? AND confirmed = 0', user_id)
+            User.query.filter_by(user_id=user_id, confirmed=0).delete()
+            db.session.commit()
             session['temp_flash'] = 'Error 2.2.1: Invalid or expired registration link. Your registration has been cancelled. Please re-register.'    
             return redirect(url_for('login'))
     
     # Step 3: If user lands on page w/ correct url token, proceed with user creation.
     else:
-        # Step 3.3: Do DB pull matching on user_email from token.
-        user_data = db.execute('SELECT * FROM users WHERE user_id = ?', user['user_id'])
+        # Step 3.1: Do DB query to pull DB record corresponding to user_id
+        user_data = User.query.filter_by(user_id=user_id).first()
+
+        if user_data:
+            # Step 3.3: If user's email is in db and user is confirmed, throw error and redirect to login.
+            if user_data.confirmed == 1:
+                session['temp_flash'] = 'Error 3.3: User account already confirmed, please log in using your email and password. You may request a password reset via the link below, if needed.'
+                return redirect(url_for('login'))
         
-        # Step 3.4: If user's email is not in db, throw error and redirect to register.
-        if len(user_data) != 1:
-            flash('Error 3.4: No registration found. Please complete the registration form below.')
-            return redirect(url_for('register'))
-                
-        # Step 3.5: If user's email is in db and user is confirmed, throw error and redirect to login.
-        user_data = user_data[0]
-        if user_data['confirmed'] == 1:
-            session['temp_flash'] = 'Error 3.5: User account already confirmed, please log in using your email and password. You may request a password reset via the link below, if needed.'
-            return redirect(url_for('login'))
+            # Step 3.4: Validation steps above have passed, proceed to update user's 
+            # status to confirmed in DB. Note that the 1 below is not user input and thus
+            # does not need to be parameterized to protect against SQL injection. 
+            user_data.confirmed = 1
+            db.session.commit()
         
-        # Step 3.6: Validation steps above have passed, proceed to update user's 
-        # status to confirmed in DB. Note that the 1 below is not user input and thus
-        # does not need to be parameterized to protect against SQL injection. 
-        db.execute('UPDATE users SET confirmed = 1 WHERE user_id = ?', user['user_id'])
-        
-        # Step 3.3: Set session to the user.data array (ex pw), effectively logging the user in.
-        # Step 3.3.2: Iterate across all the keys in user_data, except the password, which 
-        # is excluded for security reasons.
-        for key in user_data:
-            if key != 'pw_hashed':
-                session[key] = user_data[key]
-                
-        print(f'running /user_confirmation...  session est via reg confirm link: {session}')
-        
-        # Step 3.3: Pause, flash message and redirect to login
-        time.sleep(3)
-        flash('Registration is confirmed. Welcome to SavorScript!')
-        return redirect(url_for('index'))
+            # Step 3.5: Set session to the user.data array (ex pw), effectively logging the user in.
+            # Step 3.3.2: Iterate across all the keys in user_data, except the password, which 
+            # is excluded for security reasons.
+            user_data = user_data.as_dict()
+            for key in user_data:
+                if key != 'pw_hashed':
+                    session[key] = user_data[key]
+                    
+            print(f'running /user_confirmation...  session est via reg confirm link: {session}')
+            
+            # Step 3.3: Pause, flash message and redirect to login
+            time.sleep(3)
+            flash('Registration is confirmed. Welcome to SavorScript!')
+            return redirect(url_for('index'))
 
 # ----------------------------------------------------------------------------------------
 
