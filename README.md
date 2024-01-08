@@ -41,10 +41,10 @@ Allow developers to focus on the core of their development projects, with minima
 
 
 #### KEY FEATURES:
-2. Use of database to store user data
+1. Use of database to store user data
     - See: savorscript.sqlite
 
-2. User creation/registration
+1. User creation/registration
     - See: app.py --> /register and register.html
     - User input is validated before submission
     - Username availability and satisfaction of password requirements is communicated to the user real-time via JavaScript
@@ -54,47 +54,47 @@ Allow developers to focus on the core of their development projects, with minima
         -The app then automatically generates a cryptographic token and sends that token to the email address provided by the user
         - The user must then click on the link the email sent to them by the application to be directed back to the application, at which time their account's status is changed to 'confirmed' in the database, allowing for login and access to the application.
 
-2. Extensive user input validation and password management
+1. Extensive user input validation and password management
     - See: app.py, register.html
     - Application uses standard and custom Flask-WTF filters and validators, with helpful error messages displayed to the user alongside the form fields that failed validation
     - Application uses enforces password strength custom password fully customizable parameters for password strength (min password length, min letters, min chars, min symbols, prohibited symbols)
     
-2. Use of JavaScript to provide validation feedback to users, make input fields appear/disappear, and enable/disable submit button
+1. Use of JavaScript to provide validation feedback to users, make input fields appear/disappear, and enable/disable submit button
     - See: app.py --> /profile, /register
     - See: profile.html, register.html
     - Clicking button makes input fields appear/disappear based on onclick() listener
     - Inputting data triggers real-time feedback to user about username availability and password validation
     - Inputting of all required data makes enabled submit button appear (done via promise chain).
 
-2. Account management for existing users
+1. Account management for existing users
     - See: app.py --> /register, /pw_change, pw_reset_req, /pw_reset_new/<token>
     - Password change (for users already logged in)
     - Password reset via cryptographic token + email link (for users not logged in)
 
-2. Preserves flash messages and CSRF token stored in Session, even in routes where Session is cleared to enforce user to be logged out (e.g. /password reset, /register)
+1. Preserves flash messages and CSRF token stored in Session, even in routes where Session is cleared to enforce user to be logged out (e.g. /password reset, /register)
     - See app.py --> /register (creation of messages) and /login (display 
     of messages)
     - Stores Session data to be preserved in a temporary variable before Session is cleared, allowing that data to be used later in the route
 
-2. Connection to gmail for programmatic email generation (including 
+1. Connection to gmail for programmatic email generation (including 
 password reset emails)
     - See app.py --> /pw_reset_req
 
-2. Use of CronJob to automatically remove users who have not confirmed their registration and whose token has expired
+1. Use of CronJob to automatically remove users who have not confirmed their registration and whose token has expired
 
-2. Use of url_for throughout
+1. Use of url_for throughout
     - See: various app.py (all redirects) and htmls (all <a> links)
     - Makes links more maintainable, enables Blueprints
 
-2. Navbar contents are dynamic based on whether user is logged in
+1. Navbar contents are dynamic based on whether user is logged in
     - See: layout.html
     - Uses jinja to alter display of navbar elements relative to whether user
     is already logged in
 
-2. Extensive user profile management for users logged in
+1. Extensive user profile management for users logged in
     - See app.py --> /profile
     - See profile.html
     - Ability for logged-in user to update their username, first and last name, 
     birthdate, gender, etc.
     
-2. Use of a cool favicon :-0
+1. Use of a cool favicon :-0
