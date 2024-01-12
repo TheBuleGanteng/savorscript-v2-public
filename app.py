@@ -340,7 +340,7 @@ def create_app(config_name=None):
 
     #-------------------------------------------------------------------------------------
 
-
+    max_token_age_seconds = 900
     def auto_database_cleanup():
         
         # Step 1: Calculate the time before which unconfirmed records will be deleted
@@ -884,6 +884,7 @@ def create_app(config_name=None):
 
                 # Step 2.1.2: Pull in data submitted by the user via the form
                 password = form.password.data
+                
                 print(f'Running /pw_reset_new route... pulled in password_new.')
                 # THROWAWAY CODE
                 print(f'Running /pw_reset_new route... password is: { password }.')
@@ -901,7 +902,7 @@ def create_app(config_name=None):
                     session['temp_flash'] = 'Success! Password changed successfully.'
                     return redirect(url_for('login'))
                 else:
-                    print(f'Running /pw_reset_new route... Error 2.1.3: User tried to reset password using unregistered pw_reset_email of: { pw_reset_email }.')
+                    print(f'Running /pw_reset_new route... Error 2.1.3: User tried to reset password using unregistered pw_reset_email.')
                     session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!' 
                     return redirect(url_for('login'))
             
