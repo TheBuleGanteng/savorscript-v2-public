@@ -1,5 +1,7 @@
+from flask import current_app
 import csv
 import datetime
+from itsdangerous import TimedSerializer as Serializer
 import pytz
 import requests
 import subprocess
@@ -76,3 +78,32 @@ def lookup(symbol):
 def usd(value):
     """Format value as USD."""
     return f"${value:,.2f}"
+
+
+max_token_age_seconds = 900
+
+# Token generation for password reset
+def get_reset_token(user_id):
+    s = Serializer(current_app.config['SECRET_KEY'], salt='reset-salt')
+    return s.dumps({'user_id': user_id})
+
+def verify_reset_token(token, max_age=max_token_age_seconds):
+    print(f'running verify_reset_token(token, max_age=max_token_age_seconds)... starting')
+    from models import User
+    print(f'running verify_reset_token(token, max_age=max_token_age_seconds)... imported User from models')
+    s = Serializer(current_app.config['SECRET_KEY'], salt='reset-salt')
+    print(f'running verify_reset_token(token, max_age=max_token_age_seconds):... s from Serializer is: { s }')
+    try:
+        data = s.loads(token, max_age=max_age)
+        print(f'running verify_reset_token(token, max_age=max_token_age_seconds):... data is: { data }')
+        user_id = data['user_id']
+        print(f'running verify_reset_token(token, max_age=max_token_age_seconds):... data[user_id] is: { data["user_id"] }')
+    except Exception as e:
+        print(f'running verify_reset_token(token, max_age=max_token_age_seconds):... error is: { e }')
+        return None
+    
+    user_data = User.query.filter_by(user_id=user_id).first()
+    if user_data:
+        return user_data.as_dict()
+    else:
+        return None
