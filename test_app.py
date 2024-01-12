@@ -1959,18 +1959,21 @@ def test_pw_reset_new_happy_path(client):
     # Create a new test user
     test_user = insert_test_user(client.application)
     
-    # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    # Mock the email sending function
+    with patch('app.mail.send') as mock_send:
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])
@@ -2126,18 +2129,20 @@ def test_pw_reset_new_missing_pw_reset_new(client):
     test_user = insert_test_user(client.application)
     print(f'{get_execution_order()} -- running test number: { test_number }... test_user is: { test_user }')
 
-    # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    with patch('app.mail.send') as mock_send:
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])    
@@ -2178,18 +2183,20 @@ def test_pw_reset_new_missing_pw_reset_new_confirm(client):
     test_user = insert_test_user(client.application)
     print(f'{get_execution_order()} -- running test number: { test_number }... test_user is: { test_user }')
 
-    # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    with patch('app.mail.send') as mock_send:
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])    
@@ -2230,18 +2237,20 @@ def test_pw_reset_new_missing_pw_reset_new_and_confirm(client):
     test_user = insert_test_user(client.application)
     print(f'{get_execution_order()} -- running test number: { test_number }... test_user is: { test_user }')
 
-    # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    with patch('app.mail.send') as mock_send:
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])    
@@ -2282,18 +2291,20 @@ def test_pw_reset_new_prohibited_chars(client):
     test_user = insert_test_user(client.application)
     print(f'{get_execution_order()} -- running test number: { test_number }... test_user is: { test_user }')
 
-    # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    with patch('app.mail.send') as mock_send:
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])    
@@ -2334,18 +2345,20 @@ def test_pw_reset_new_weak_new_pw(client):
     test_user = insert_test_user(client.application)
     print(f'{get_execution_order()} -- running test number: { test_number }... test_user is: { test_user }')
 
-    # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    with patch('app.mail.send') as mock_send:
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])    
@@ -2385,18 +2398,20 @@ def test_pw_reset_new_missing_pw_new_and_pw_new_confirm(client):
     test_user = insert_test_user(client.application)
     print(f'{get_execution_order()} -- running test number: { test_number }... test_user is: { test_user }')
 
+    with patch('app.mail.send') as mock_send:
     # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])    
@@ -2437,18 +2452,20 @@ def test_pw_reset_new_pw_new_pw_matches_old_pw(client):
     test_user = insert_test_user(client.application)
     print(f'{get_execution_order()} -- running test number: { test_number }... test_user is: { test_user }')
 
-    # Step 1: Get the CSRF token from the password reset request page
-    response = client.get('/pw_reset_req')
-    assert response.status_code == 200
-    html = response.data.decode()
-    csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    with patch('app.mail.send') as mock_send:
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/pw_reset_req')
+        assert response.status_code == 200
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
 
-    # Step 2: User provided valid email address to /pw_reset_req
-    response = client.post('/pw_reset_req', data={
-        'csrf_token': csrf_token_req,
-        'user_email': test_user['user_email']
-    }, follow_redirects=True)
-    assert response.status_code == 200  # or other appropriate status code
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/pw_reset_req', data={
+            'csrf_token': csrf_token_req,
+            'user_email': test_user['user_email']
+        }, follow_redirects=True)
+        assert response.status_code == 200  # or other appropriate status code
+        mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
     real_token = get_reset_token(test_user['user_id'])    
