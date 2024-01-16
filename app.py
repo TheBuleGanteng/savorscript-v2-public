@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import DNS
 from email_validator import validate_email, EmailNotValidError
-from flask import Flask, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for, url_for
+from flask import Flask, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for
 import flask
 from flask_mail import Mail, Message
 from flask_session import Session as ServerSession
@@ -259,7 +259,7 @@ def create_app(config_name=None):
 
     # Defining form classes for use with Flask-WTF
     class LoginForm(FlaskForm):
-        user_email = StringField('Email', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator])
+        user_email = EmailField('Email', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator])
         password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator])
         submit = SubmitField('Log In')
     

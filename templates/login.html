@@ -8,13 +8,38 @@
     <form action='/login' method='post'>
         {{ form.hidden_tag() }}
         
+        <!-- user_email -->
         <div class='mb-3'>
-            <input autocomplete='off' autofocus class='form-control mx-auto w-auto' id='user_email' name='user_email' placeholder='Email address' type='email' required>
+            {{ form.user_email(class='form-control mx-auto w-auto', id='user_email', autocomplete='off', autofocus=True, placeholder='Email address') }}
         </div>
         <div class='mb-3'>
-            <input class='form-control mx-auto w-auto' id='password' name='password' placeholder='Password' type='password' required>
+        {% if form.user_email.errors %}
+                <div class='text-danger'>
+                    {% for error in form.user_email.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
-        <button class='btn btn-primary' type='submit'>Log In</button>
+        <!-- /user_email -->
+
+        <!-- password -->
+        <div class='mb-3'>
+            {{ form.password(class='form-control mx-auto w-auto', id='password', autocomplete='off', placeholder='Password') }}
+        </div>
+        <div class='mb-3'>
+            {% if form.password.errors %}
+                <div class='text-danger'>
+                    {% for error in form.password.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>        
+        <!-- /password -->
+
+        {{ form.submit(class='btn btn-primary', id='submit') }}
+        
     </form>
 
     <div class='container-fluid text-center p-3'>
