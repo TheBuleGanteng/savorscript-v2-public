@@ -46,15 +46,12 @@ def create_app(config_name=None):
         from configs.dev_config import DevelopmentConfig
         app.config.from_object(DevelopmentConfig)
 
-
-
     # Initialize extensions with the app instance
     db.init_app(app)
     mail.init_app(app)
     server_session.init_app(app)
     talisman.init_app(app, content_security_policy=app.config['CONTENT_SECURITY_POLICY'])
     csrf.init_app(app)
-
 
     from models import User
 
@@ -476,8 +473,6 @@ def create_app(config_name=None):
             confirmation_match = False
 
         print(f'checks_passed_confirmation is: {checks_passed_confirmation}')
-        print(f'password is: {password}')
-        print(f'password_confirmation is: {password_confirmation}')
         print(f'confirmation_match is: {confirmation_match}')
 
         # Return a JSON response indicating availability
@@ -485,8 +480,6 @@ def create_app(config_name=None):
 
 
     # ----------------------------------------------------------------------------------------
-
-
 
     @app.route('/csp-violation-report', methods=['POST'])
     @csrf.exempt
@@ -515,7 +508,7 @@ def create_app(config_name=None):
         print(f'Running /login route... Database URL is: { app.config["SQLALCHEMY_DATABASE_URI"] }')
 
         nonce = generate_nonce()
-        print(f'Running /login route... nonce is:{nonce}')
+        print(f'running /login ... nonce is:{nonce}')
 
         # Step 1: Display Flask-WTF LoginForm (defined above)
         form = LoginForm()

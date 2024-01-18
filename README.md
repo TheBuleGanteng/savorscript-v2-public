@@ -33,7 +33,7 @@ Allow developers to focus on the core of their development projects, with minima
     - Use of customized Content Security Policy (CSP) managed by Flask Talisman to protect against cross-site scripting (XSS), clickjacking and other code injection attacks
     - Use of CSRFProtect to protect against cross-site registry attacks
     - Use of cryptographic tokens sent to the user via email as part of 2-step registration and password reset processes
-    - Exclusion of sensitive data (e.g. passwords from) being stored in Session or in cryptographic token used for password reset
+    - Exclusion of sensitive data (e.g. passwords) from being stored in Session or in cryptographic token used for password reset
     - Externalization of sensitive data (e.g. login needed to send emails programmatically) to .env file
     - Exclusion of .env file and other sensitive data from upload to GitHub via .gitignore file
     - Daily (12pm GST) automated purging of stale, unconfirmed user accounts via a cron job
@@ -56,8 +56,8 @@ Allow developers to focus on the core of their development projects, with minima
 
 1. Extensive user input validation and password management
     - See: app.py, register.html
-    - Application uses standard and custom Flask-WTF filters and validators, with helpful error messages displayed to the user alongside the form fields that failed validation
-    - Application uses enforces password strength custom password fully customizable parameters for password strength (min password length, min letters, min chars, min symbols, prohibited symbols)
+    - Standard and custom Flask-WTF filters and validators, with helpful error messages displayed to the user alongside the form fields that failed validation
+    - Fully customizable parameters for password strength (min password length, min letters, min chars, min symbols, prohibited symbols).
     
 1. Use of JavaScript to provide validation feedback to users, make input fields appear/disappear, and enable/disable submit button
     - See: app.py --> /profile, /register

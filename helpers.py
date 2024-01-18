@@ -109,3 +109,8 @@ def verify_reset_token(token, max_age=max_token_age_seconds):
         return user_data.as_dict()
     else:
         return None
+
+
+# Generates a nonce to work with Talisman-managed CSP
+def generate_nonce():
+        return os.urandom(16).hex()
